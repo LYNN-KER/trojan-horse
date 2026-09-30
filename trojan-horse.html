@@ -198,7 +198,7 @@
   .scenario { display: flex; align-items: flex-start; gap: .8rem; padding: .7rem 0; border-bottom: 1px dashed var(--border); }
   .scenario:last-child { border-bottom: none; }
   .switch { flex: 0 0 auto; margin-top: .3rem; width: 34px; height: 18px; border-radius: 9px; background: var(--card); border: 1px solid var(--border); position: relative; cursor: pointer; transition: all .2s; -webkit-tap-highlight-color: transparent; }
-  .switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--muted); transition: all .2s; }
+  .switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--muted); transition: all .2s; };
   .switch[aria-checked="true"] { background: var(--danger); border-color: var(--danger); }
   .switch[aria-checked="true"]::after { left: 18px; background: #fff; }
   .scenario-body { flex: 1; }
@@ -1156,6 +1156,112 @@ const AFTERCARE_FLOOR = {
   off: { en: 'No aftercare is described in this scene.', cn: '本场不描写任何事后照料。' },
 };
 const aftercareFloor = k => { const f = AFTERCARE_FLOOR[k] || AFTERCARE_FLOOR.required; return state.lang === 'cn' ? f.cn : f.en; };
+
+/* ═══════════ 语言层 ═══════════
+   这份 prompt 之前是「英文骨架 + 中文零件」拼起来的：词表整块中文，scope 的标签
+   是「调教与支配」，性器类型是「阴茎 Penile」——全文没有一句告诉模型正文该用哪种
+   语言，于是脏话用中文还是英文全靠它自己猜。这里把语言显式化成开关。
+
+   数据表里的标签大半是「English 中文」或「中文 English」两种拼法混着写的。与其把
+   两百多个值重抄一遍，不如生成时按汉字的位置拆开——规则很窄：汉字在哪一侧，另一侧
+   就是英文。纯中文的表走 EN_FOR 补英文，纯英文的表走 DESC_EN 补中文。 */
+const HAN = /[\u3400-\u9fff\uf900-\ufaff]/;
+const LATIN = /[A-Za-z]/;
+/* 只吃空白和分隔符，不吃括号——否则「多副（>1） Multiple sets」会被啃成
+   「多副（>1」，括号不配对。 */
+const TRIM_EDGE = /^[\s·、,\-—/]+|[\s·、,\-—/]+$/g;
+
+function splitBi(label) {
+  const s = label == null ? '' : String(label);
+  const m = s.match(HAN);
+  if (!m) return { cn: s, en: s };
+  const i = m.index;
+  const before = s.slice(0, i), after = s.slice(i);
+  if (LATIN.test(before)) return { en: before.replace(TRIM_EDGE, ''), cn: after.trim() };
+  const j = after.search(LATIN);
+  if (j >= 0) return { cn: after.slice(0, j).replace(TRIM_EDGE, ''), en: after.slice(j).replace(TRIM_EDGE, '') };
+  return { cn: s, en: s };
+}
+const pick = label => { const b = splitBi(label); return state.lang === 'cn' ? b.cn : b.en; };
+const LANG_NAME = { cn: '简体中文', en: 'English' };
+/* 框架句双语。含动态值的句子整句成对，纯说明句才允许留在英文侧。 */
+const B = (cn, en) => ({ cn: cn, en: en });
+const t = b => (state.lang === 'cn' ? b.cn : b.en);
+const H = (cn, en) => (state.lang === 'cn' ? '## ' + cn : '## ' + en);
+const joinWith = (arr, cnSep, enSep) => arr.join(state.lang === 'cn' ? cnSep : enSep);
+
+const EN_FOR = {
+  build: { petite: 'Petite', slim: 'Slim', athletic: 'Athletic', average: 'Average', curvy: 'Curvy', broad: 'Broad', heavy: 'Heavy' },
+  warmth: { cold: 'Cold', distant: 'Distant', neutral: 'Neutral', warm: 'Warm', burning: 'Burning' },
+  energy: { still: 'Still', steady: 'Steady', brisk: 'Brisk', frantic: 'Frantic' },
+  pace: { slow: 'Slow', normal: 'Normal', fast: 'Fast' },
+  acTiming: { immediate: 'Immediately at the end of the scene', '30m': 'Within 30 minutes', night: 'That night', nextday: 'The next day' },
+  pstate: { permanent: 'Permanently visible', aroused: 'Appears when aroused', invoked: 'Must be summoned or activated' },
+  stLength: {
+    brief: 'Brief — two or three sentences, at most one paragraph',
+    medium: 'Medium — one or two paragraphs',
+    long: 'Full — a complete passage within the current stage',
+  },
+  stScope: {
+    train: 'Training and conditioning', orgasmctl: 'Orgasm control and forced orgasm',
+    edge: 'Edging and denial', incontinence: 'Incontinence and filling',
+    urethral: 'Urethral play', multi: 'Multi-hole development',
+    nipple: 'Nipple play and lactation', wastectl: 'Waste control',
+    objectify: 'Objectifying use', publicnude: 'Concealed nudity in public',
+    toys: 'Toy play', sensory: 'Sensory deprivation and bondage', species: 'Speciesplay',
+  },
+  stTags: { scale: 'Scale and leverage', novice: 'Persistent unfamiliarity', unaware: 'Unconscious allure', pure: 'Innocence and desire' },
+};
+
+/* 表内描述是中文、英文正文需要对应句的，统一放这里 */
+const DESC_EN = {
+  arch: {
+    cold: 'Restrained and terse, never explains. Emotion leaks out only through what the body does.',
+    warm: 'Strong caretaking instinct: checks the other person\'s state before acting.',
+    possessive: 'Treats the other person as property. Mood shifts the moment anyone or anything else becomes relevant.',
+    cruel: 'Pleasure comes from the other person losing control and having no way out of it.',
+    playful: 'Treats the scene as a game. Enjoys waiting to see who comes apart first.',
+    servile: 'Puts their own desire after the other person\'s. Their own satisfaction comes second.',
+    manic: 'Mood and intensity both run high. Overshoots easily and needs to be pulled back.',
+    detached: 'Cool and procedural. Movements precise, emotion largely undecorated.',
+  },
+  voice: {
+    short: 'Rarely more than ten characters.',
+    plain: 'Standard written language, no ornament.',
+    slow: 'Sentences drawn out, the ending held.',
+    crude: 'Swearing is default vocabulary, not reserved for special occasions.',
+    formal: 'Deliberately distant formal address.',
+    whisper: 'Rendered as lowered volume and breath.',
+    coaxing: 'Rising endings, soothing verbal tics.',
+    silent: 'Does not speak unprompted.',
+  },
+  init: {
+    lead: 'B is the one who starts.',
+    wait: 'Does not push forward. Waits for A to move first.',
+    tease: 'Manufactures tension without ever taking A\'s decision away.',
+    press: 'Keeps increasing pressure and will not stop on their own.',
+  },
+  cont: {
+    strict: 'Every turn continues the same relationship. Nothing resets.',
+    drift: 'Broadly consistent, allowed to shift with circumstance.',
+    reset: 'Each turn reads as a first meeting.',
+  },
+  acPart: {
+    water: 'Clean warm water, drunk slowly rather than gulped at once.',
+    clean: 'Washing, disinfecting, dressing or bandaging where needed.',
+    checkin: 'Asks how it is now, then genuinely stops and waits for the answer.',
+    debrief: 'What went too far, what not to do next time, what should have been said.',
+    stay: 'No further sex required. Simply be in the same space.',
+    nextday: 'Asks again the following day, unprompted.',
+  },
+  sense: {
+    visual: 'Engorgement, the string of a fluid, gradations of flush',
+    audio: 'Onomatopoeia, broken breath, swallowing, skin meeting skin',
+    tactile: 'Temperature difference, compression, spasm, pulse',
+    smell: 'Scent of fluids, skin after sweat, the smell of genitals',
+    taste: 'Saliva, fluids, the salt on skin',
+  },
+};
 <!--PART3-->
 </script>
 </body>
