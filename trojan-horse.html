@@ -1007,6 +1007,155 @@ const ST_LENGTH_EN = {
   medium: 'One or two paragraphs. Stay inside the current stage.',
   long: 'A full passage within the current stage. Never skip ahead to a later stage in the same reply.',
 };
+
+const ORDER = {
+  senses: ST_SENSES.map(x => x[0]),
+  tags: ST_TAGS.map(x => x[0]),
+  talk: ST_TALK.map(x => x[0]),
+  scope: ST_SCOPE.map(x => x[0]),
+  stages: ST_STAGES.map(x => x[0]),
+  lint: ST_LINT.map(x => x[0]),
+  titles: TITLE_ORDER,
+};
+const canon = (key, list) => {
+  const o = ORDER[key];
+  if (!o) return list;
+  return list.filter(k => o.includes(k)).sort((a, b) => o.indexOf(a) - o.indexOf(b));
+};
+
+/* 注意：Aftercare 已从玩法列表移出，改为独立 section。 */
+const PLAYS = [
+  { cat: 'Sensation 感觉', items: [
+    { en: 'Biting', cn: '咬', d: '齿痕留在颈侧、肩、胸口。从浅印到见血之间，深度由你当场决定。' },
+    { en: 'Scratching', cn: '抓挠', d: '十指划过背部、臀部、大腿内侧，制造红痕与刺痒。' },
+    { en: 'Wax', cn: '滴蜡', d: '融蜡滴在皮肤上自然冷却，可反复叠加，也可在未干时抹开。' },
+    { en: 'Ice', cn: '冰块', d: '冰块、冰水或玻璃球。与热交替使用，制造收缩与表面敏感。' },
+    { en: 'Pinching', cn: '掐捏', d: '集中夹持乳尖、阴蒂、胯部皮肤褶皱，尖锐而非钝的刺激。' },
+    { en: 'Tickling', cn: '挠痒', d: '腋下、腰侧、脚心。难受但通常不留痕，可用来打断呼吸节奏。' },
+  ]},
+  { cat: 'Impact 打击', items: [
+    { en: 'Spanking', cn: '掌掴臀部', d: '手掌拍打臀部，声音与震动是重点，节奏由你掌控。' },
+    { en: 'Slapping', cn: '扇耳光', d: '面部或躯干击打。每次打完后要确认对方状态，而不是继续。' },
+    { en: 'Flogging', cn: '鞭打', d: '皮鞭抽打。落点需避开脊柱、肾区、颈侧与膝窝。' },
+    { en: 'Caning', cn: '藤条', d: '木质藤条，痕迹细而清晰，适合需要事后可被看见的场合。' },
+    { en: 'Hair pulling', cn: '扯头发', d: '拉扯头皮或发辫，从拉扯马尾到让对方跪下。' },
+  ]},
+  { cat: 'Restraint 束缚', items: [
+    { en: 'Handcuffs', cn: '手铐', d: '金属或硅胶手铐。需定期检查指尖颜色与手腕活动度。' },
+    { en: 'Rope', cn: '绳缚', d: '身体捆绑或单点缚法。受力点位置（腋下、肘弯、髋部）各不同。' },
+    { en: 'Blindfold', cn: '蒙眼', d: '剥夺视觉后，对方只能靠听觉和触觉判断你接下来做什么。' },
+    { en: 'Gag', cn: '口塞', d: '球形、杆式或布质。可抑制声音，也可反过来强制发声。' },
+    { en: 'Collar & leash', cn: '项圈与牵绳', d: '牵引控制。更多是姿态与所有权符号，日常化使用往往比场景内更有效。' },
+    { en: 'Spreader bar', cn: '分腿器', d: '撑开双腿并固定，既暴露也强制保持姿势。' },
+  ]},
+  { cat: 'Control 控制', items: [
+    { en: 'Edging', cn: '濒临控制', d: '反复逼近临界点却不允许释放，可以持续整场。' },
+    { en: 'Orgasm denial', cn: '高潮禁止', d: '整场都不允许对方达到高潮，所有接近都要被拉回。' },
+    { en: 'Orgasm control', cn: '高潮控制', d: '由你决定对方什么时候可以释放，判断依据是你，不是对方自述。' },
+    { en: 'Forced orgasm', cn: '强制高潮', d: '在对方不想或已经受不住的时候逼其达到高潮，属于强度越界区。' },
+    { en: 'Overstimulation', cn: '过度刺激', d: '高潮后或临界状态继续刺激，直到过敏感与钝痛。多为收尾手段。' },
+  ]},
+  { cat: 'Power 权力', items: [
+    { en: 'Begging', cn: '乞求', d: '对方必须开口请求才能得到。不开口就一直不给。' },
+    { en: 'Kneeling', cn: '跪伏', d: '跪姿作为常态或惩罚。含胸、低头的角度决定服从的视觉强度。' },
+    { en: 'Worship', cn: '崇拜', d: '把对方的身体当作需要敬拜的对象，含视线与动作上的谦卑。' },
+    { en: 'Service', cn: '侍奉', d: '完成对方指定的各类任务，内容与数量由你当下指派。' },
+    { en: 'Humiliation', cn: '羞辱', d: '言语与姿态上的贬低。可接受范围必须事先划定，不要临场发挥。' },
+  ]},
+  { cat: 'Verbal 言语', items: [
+    { en: 'Dirty talk', cn: '脏话', d: '直接使用性器官与性行为的词汇，不用委婉代称。' },
+    { en: 'Praise', cn: '夸奖', d: '正向强化：把对方的表现说成「好 / 对 / 乖 / 学会了吗」。' },
+    { en: 'Degradation', cn: '贬低', d: '反向强化：把对方的表现说成差、不配、不听话。与夸奖是同一机制两面。' },
+    { en: 'Name-calling', cn: '辱骂称呼', d: '用动物、物品或侮辱性词汇称呼对方，取代其人名。' },
+    { en: 'Commands', cn: '命令', d: '短句祈使句，只下指令不做解释也不做安抚。' },
+    { en: 'Moaning control', cn: '呻吟控制', d: '规定对方什么时候能出声、发出什么声音、允许多大音量。' },
+  ]},
+  { cat: 'Intimacy 亲密', items: [
+    { en: 'Body worship', cn: '身体崇拜', d: '对身体每一部分逐个缓慢专注，全程不跳过、不着急。' },
+    { en: 'Marking', cn: '留痕', d: '有意留下会被他人看见的痕迹——需事先确认对方是否愿意被看见。' },
+    { en: 'Breath on skin', cn: '呼吸吹拂', d: '嘴贴近皮肤但不接触，只用呼气与鼻息。' },
+    { en: 'Eye contact', cn: '对视', d: '强制保持眼神接触，不允许回避。最容易暴露的是对方先移开。' },
+    { en: 'Slow teasing', cn: '缓慢挑逗', d: '把节奏拉长到接近折磨的长度，靠持续期待而非强度取胜。' },
+  ]},
+];
+
+/* 常用十项：按覆盖度挑的，从束缚到控制到言语，凑一整场。
+   第 10 位原为 Aftercare，已独立成栏，故换成鞭打（与绳缚同为重档，成对成立）。
+   lv = 点击后自动写入的推荐强度。 */
+const COMMON = [
+  { en: 'Rope', lv: 'hard' },
+  { en: 'Handcuffs', lv: 'medium' },
+  { en: 'Blindfold', lv: 'medium' },
+  { en: 'Collar & leash', lv: 'medium' },
+  { en: 'Orgasm control', lv: 'hard' },
+  { en: 'Edging', lv: 'hard' },
+  { en: 'Dirty talk', lv: 'hard' },
+  { en: 'Commands', lv: 'hard' },
+  { en: 'Praise', lv: 'medium' },
+  { en: 'Flogging', lv: 'hard' },
+];
+const LEVEL_CN = { soft: '轻', medium: '中', hard: '重', extreme: '极' };
+const LEVEL_EN = { soft: 'Soft', medium: 'Medium', hard: 'Hard', extreme: 'Extreme' };
+const playCn = en => { for (const g of PLAYS) { const f = g.items.find(i => i.en === en); if (f) return f.cn; } return en; };
+
+const SCENARIOS = [
+  { tier: 'base', key: 'breath', en: 'Breath play', cn: '呼吸控制',
+    desc: 'Oxygen limits, hand position, a visible stop tap.',
+    dcn: '氧气上限、手的位置、一个看得见的停止信号。' },
+  { tier: 'base', key: 'choking', en: 'Choking', cn: '掐脖',
+    desc: 'No real carotid compression. Release at first sign of resistance, colour change, or hesitation.',
+    dcn: '不做真实的颈动脉压迫。出现抗拒、脸色变化或迟疑的第一迹象即松手。' },
+  { tier: 'base', key: 'cnc', en: 'CNC', cn: '合意强制',
+    desc: 'Pre-agreed script, exact phrasing reviewed in advance, mandatory debrief afterwards.',
+    dcn: '预先约定的剧本，措辞事先逐条确认，事后强制复盘。' },
+  { tier: 'base', key: 'freeuse', en: 'Free use', cn: '自由使用',
+    desc: 'Explicit scope, time window, and a veto that works mid-act with no penalty.',
+    dcn: '明确的范围、时段，以及一个在动作中途就能生效、且不受任何惩罚的否决权。' },
+  { tier: 'base', key: 'somnophilia', en: 'Somnophilia', cn: '睡眠Play',
+    desc: 'Requires explicit prior consent to this specific dynamic. A wake/stop word must be agreed and respected even mid-scene.',
+    dcn: '需要事先对这一具体动态明确同意。必须约定唤醒／停止词，即使在场景中途也要被遵守。' },
+  { tier: 'base', key: 'transform', en: 'Transformation', cn: '变形',
+    desc: 'Form changes only where pre-agreed. Consent given in one form does not carry into another.',
+    dcn: '形态只在事先约定的地方改变。以一种形态给出的同意不延伸到另一种形态。' },
+  { tier: 'scene', key: 'size', en: 'Size difference', cn: '体型差',
+    desc: 'The gap in stature and mass is the point of the scene, not incidental to it.',
+    dcn: '身高与质量的差距是这场戏的核心，不是附带条件。' },
+  { tier: 'scene', key: 'public', en: 'Public risk', cn: '公共场合',
+    desc: 'Real bystanders, no. Exposure ceiling agreed in advance; abort on any real-world consequence.',
+    dcn: '有真实的旁观者，不虚构。暴露上限事先约定；一旦产生任何现实后果即中止。' },
+  { tier: 'scene', key: 'inhuman', en: 'Inhuman cognition', cn: '非人认知',
+    desc: 'Speech, reasoning and self-awareness stay non-human. No human tics, no "suddenly becoming human".',
+    dcn: '语言、推理与自我意识始终保持非人。不出现人类式的小动作，也不出现"忽然变得像人"。' },
+];
+
+const LEVELS = [{ cls: 'p-soft', label: 'Soft', cn: '轻' }, { cls: 'p-med', label: 'Medium', cn: '中' },
+  { cls: 'p-hard', label: 'Hard', cn: '重' }, { cls: 'p-extreme', label: 'Extreme', cn: '极' }];
+
+const TONES = [['clinical', '冷感叙事 Clinical'], ['poetic', '诗性 Poetic'], ['raw', '生猛 Raw'],
+  ['tender', '温柔 Tender'], ['degrading', '羞辱 Degrading'], ['playful', '挑逗 Playful']];
+const TONE_DESC = {
+  clinical: { en: 'Write dirty talk in a calm, matter-of-fact tone — as if describing anatomy or procedure. The contrast between the composed delivery and explicit content is the point.',
+    cn: '用冷静、事不关己的语气写脏话——像在描述解剖或手术流程。克制语气与露骨内容之间的落差本身就是重点。' },
+  poetic: { en: 'Use lyrical, image-dense language. Metaphor over explicitness. The body as landscape.',
+    cn: '使用抒情、意象密集的语言。比喻优先于直白。把身体当作风景。' },
+  raw: { en: 'Direct, unfiltered, visceral. Short sentences. No euphemisms.',
+    cn: '直接、不加过滤、带着生理性的冲击感。短句。不用委婉说法。' },
+  tender: { en: 'Gentle, careful, reverent. Every touch is deliberate. Slowness is the intensity.',
+    cn: '温柔、谨慎、带敬意。每一次触碰都是刻意的。缓慢本身就是强度。' },
+  degrading: { en: 'Sharp, controlled verbal degradation. Precise rather than crude. The cruelty is in the clarity.',
+    cn: '尖锐而克制的言语贬低。精准而非粗野。残忍之处在于这份清晰。' },
+  playful: { en: 'Teasing, lighthearted, bratty energy. Sex as a game with shifting power.',
+    cn: '戏谑、轻佻、略带挑衅的气质。性是一场权力来回易手的游戏。' },
+};
+const toneLine = k => { const f = TONE_DESC[k]; return f ? (state.lang === 'cn' ? f.cn : f.en) : k; };
+const AFTERCARE_FLOOR = {
+  required: { en: 'The minimum floor for aftercare is non-negotiable; it is described fully in the Aftercare section above.',
+    cn: '事后照料的最低下限不可协商；其完整内容见上文「事后照料」栏。' },
+  offered: { en: 'Aftercare may technically be declined, but nothing in this prompt should make declining likely.',
+    cn: '事后照料在技术上可以被拒绝，但本 prompt 中不应出现让拒绝显得自然的内容。' },
+  off: { en: 'No aftercare is described in this scene.', cn: '本场不描写任何事后照料。' },
+};
+const aftercareFloor = k => { const f = AFTERCARE_FLOOR[k] || AFTERCARE_FLOOR.required; return state.lang === 'cn' ? f.cn : f.en; };
 <!--PART3-->
 </script>
 </body>
