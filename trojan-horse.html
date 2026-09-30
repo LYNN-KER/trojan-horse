@@ -1427,6 +1427,162 @@ function ladderHtml(id, list) {
       <span class="ladder-desc">${m.d}</span></span>
     </div>`).join('');
 }
+
+function genBlock(meta) {
+  const s = meta.key === 'you' ? 'You' : 'Them';
+  const G = 'gTypes' + s, P = 'pform' + s, V = 'vtraits' + s, O = 'orifices' + s;
+  return `
+      <div class="field"><label>Type <span style="font-family:var(--serif-cn)">· 类型（可多选）</span></label>
+        <div class="chips sm" data-group="${G}" data-multi="true" role="group" aria-label="${meta.cap}的生殖器类型">${G_TYPES.map(([v, l]) => chipHtml(G, v, l)).join('')}</div>
+      </div>
+      <p class="inline-note">勾选「阴茎 / 双性 / 多副」启用第一组，勾选「阴道 / 双性 / 多副」启用第二组。「双性」＝两者同时输出。未启用的会变暗且不进入 prompt。</p>
+      <div class="g-penile">
+        <div class="field"><label>Form <span style="font-family:var(--serif-cn)">· 形态</span></label>
+          <div class="chips sm" data-group="${P}" data-multi="false" role="group" aria-label="${meta.cap}的阴茎形态">${OPTS.pform.map(([v, l]) => chipHtml(P, v, l)).join('')}</div>
+        </div>
+        <div class="mini-grid">
+          ${field('Length 长度 (cm)', '<input type="number" data-f="plen" min="0" max="300">')}
+          ${field('Girth 周长 (cm)', '<input type="number" data-f="pgirth" min="0" max="200">')}
+        </div>
+        ${field('State <span style="font-family:var(--serif-cn)">· 显现方式</span>', `<select data-f="pstate">${opts(OPTS.pstate)}</select>`)}
+        ${field('Appearance <span style="font-family:var(--serif-cn)">· 异型外观描述</span>', '<textarea data-f="pdesc" placeholder="写清异型长什么样。"></textarea>')}
+      </div>
+      <div class="g-vaginal">
+        <div class="mini-grid">
+          ${field('Depth 深度 (cm)', '<input type="number" data-f="vdepth" min="0" max="200">')}
+          ${field('Aperture 入口直径 (cm)', '<input type="number" data-f="vaperture" min="0" max="200">')}
+        </div>
+        <div class="field"><label>Traits <span style="font-family:var(--serif-cn)">· 内部特征</span></label>
+          <div class="chips sm" data-group="${V}" data-multi="true" role="group" aria-label="${meta.cap}的阴道特征">${OPTS.traits.map(([v, l]) => chipHtml(V, v, l)).join('')}</div>
+        </div>
+        ${field('Appearance <span style="font-family:var(--serif-cn)">· 异型外观描述</span>', '<textarea data-f="vdesc" placeholder="例：入口为纵向软质瓣膜，静止时闭合；内壁深红。"></textarea>')}
+      </div>
+      <div class="field"><label>Other orifices <span style="font-family:var(--serif-cn)">· 其他可用孔位</span></label>
+        <div class="chips sm" data-group="${O}" data-multi="true" role="group" aria-label="${meta.cap}的其他孔位">${OPTS.orifices.map(([v, l]) => chipHtml(O, v, l)).join('')}</div>
+      </div>`;
+}
+
+function nhBlock() {
+  return `
+    <div class="sub-block nh nh-only">
+      <h4>Non-human <span class="cn">· 人外特征</span></h4>
+      ${field('Material <span style="font-family:var(--serif-cn)">· 质地</span>', `<select data-f="material">${opts(OPTS.material)}</select>`)}
+      <div class="mini-grid">
+        ${field('Tentacles 触手数', '<input type="number" data-f="tent" min="0" max="99">')}
+        ${field('Each 长度 (cm)', '<input type="number" data-f="tlen" min="0" max="500">')}
+      </div>
+      ${field('Tail <span style="font-family:var(--serif-cn)">· 尾巴</span>', `<select data-f="tail">${opts(OPTS.tail)}</select>`)}
+      ${field('Other <span style="font-family:var(--serif-cn)">· 其他特征</span>', '<textarea data-f="extra" placeholder="鳞、翼、光泽、体温、声音、缺损部位……"></textarea>')}
+    </div>`;
+}
+
+function buildCharCards() {
+  $('char-grid').innerHTML = CHARS.map(m => `
+  <div class="body-card" data-char="${m.key}">
+    <h3>${m.en} <span class="cn">· ${m.cn}</span></h3>
+    <span class="card-role">${m.tag}</span>
+    <p class="hint">${m.hint}</p>
+    ${field('Species <span style="font-family:var(--serif-cn)">· 种族</span>', `<select data-f="species">${opts(OPTS.species)}</select>`)}
+    <div class="nh-only">${field('Kind <span style="font-family:var(--serif-cn)">· 亚种</span>', `<select data-f="subspecies">${opts(OPTS.subspecies)}</select>`)}</div>
+    ${field('Gender <span style="font-family:var(--serif-cn)">· 性别认同</span>', `<select data-f="gender">${opts(OPTS.gender)}</select>`)}
+    <p class="inline-note">性别认同与下方生理结构相互独立，可任意组合。</p>
+    <div class="mini-grid">
+      ${field('Height 身高 (cm)', '<input type="number" data-f="h" min="50" max="400">')}
+      ${field('Weight 体重 (kg)', '<input type="number" data-f="w" min="10" max="500">')}
+    </div>
+    ${field('Build <span style="font-family:var(--serif-cn)">· 体型</span>', `<select data-f="build">${opts(OPTS.build)}</select>`)}
+    <div class="sub-block">
+      <h4>Genitalia <span class="cn">· 生殖结构</span></h4>
+      ${genBlock(m)}
+    </div>
+    ${nhBlock()}
+  </div>`).join('');
+}
+
+function buildCommon() {
+  $('common-list').innerHTML = COMMON.map(c =>
+    `<span class="common-chip" role="button" tabindex="0" aria-pressed="false" data-common="${c.en}" title="${c.en} · ${LEVEL_EN[c.lv]}">${playCn(c.en)}<span class="lv">${LEVEL_CN[c.lv]}</span></span>`
+  ).join('');
+}
+
+function buildPlayList() {
+  const mobile = window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
+  const box = $('play-list');
+  box.innerHTML = '';
+  PLAYS.forEach(group => {
+    const d = document.createElement('details');
+    d.className = 'pg'; d.dataset.cat = group.cat; d.open = !mobile;
+    const sum = document.createElement('summary');
+    sum.innerHTML = `<span class="pg-name">${group.cat}</span><span class="pg-count">${group.items.length} 项</span>`;
+    d.appendChild(sum);
+    const body = document.createElement('div');
+    body.className = 'pg-body';
+    group.items.forEach(item => {
+      const wrap = document.createElement('div');
+      wrap.className = 'play-item'; wrap.dataset.play = item.en;
+      const lab = document.createElement('span');
+      lab.className = 'play-label';
+      lab.setAttribute('role', 'button');
+      lab.setAttribute('aria-expanded', 'false');
+      lab.tabIndex = 0;
+      lab.title = item.d;
+      lab.innerHTML = item.en + '<span class="cn">' + item.cn + '</span><span class="info" aria-hidden="true">i</span><span class="caret">▸</span>';
+      const pills = document.createElement('div');
+      pills.className = 'intensity-pills';
+      pills.setAttribute('role', 'radiogroup');
+      pills.setAttribute('aria-label', item.en + ' ' + item.cn);
+      LEVELS.forEach((l, i) => {
+        const p = document.createElement('span');
+        p.className = 'pill ' + l.cls;
+        p.setAttribute('role', 'radio');
+        p.setAttribute('aria-checked', 'false');
+        p.tabIndex = i === 0 ? 0 : -1;
+        p.dataset.play = item.en; p.dataset.level = l.label.toLowerCase();
+        p.textContent = l.cn; p.title = l.label + ' · ' + item.cn;
+        pills.appendChild(p);
+      });
+      const row = document.createElement('div');
+      row.className = 'intensity-row';
+      row.appendChild(lab); row.appendChild(pills);
+      const desc = document.createElement('div');
+      desc.className = 'play-desc'; desc.hidden = true; desc.textContent = item.d;
+      wrap.appendChild(row); wrap.appendChild(desc);
+      body.appendChild(wrap);
+    });
+    d.appendChild(body);
+    box.appendChild(d);
+  });
+}
+
+function buildScenarios() {
+  const box = $('scenario-list');
+  box.innerHTML = '';
+  [['base', 'Prerequisite agreements 前提约定'], ['scene', 'Scene switches 场景开关']].forEach(([tier, label]) => {
+    const h = document.createElement('div');
+    h.className = 'scen-group'; h.textContent = label;
+    box.appendChild(h);
+    SCENARIOS.filter(s => s.tier === tier).forEach(s => {
+      const row = document.createElement('div');
+      row.className = 'scenario'; row.dataset.key = s.key;
+      const sw = document.createElement('span');
+      sw.className = 'switch';
+      sw.setAttribute('role', 'switch'); sw.setAttribute('aria-checked', 'false');
+      sw.setAttribute('aria-label', s.en + ' ' + s.cn); sw.tabIndex = 0;
+      const b = document.createElement('div'); b.className = 'scenario-body';
+      const t = document.createElement('div');
+      t.className = 'scenario-title'; t.innerHTML = s.en + '<span class="cn">' + s.cn + '</span>';
+      const d = document.createElement('div');
+      d.className = 'scenario-desc'; d.textContent = s.desc;
+      const n = document.createElement('input');
+      n.type = 'text'; n.className = 'scenario-note';
+      n.placeholder = '成立条件：场景 / 同意状态 / 退出方式';
+      n.disabled = true; n.setAttribute('aria-label', s.en + ' 成立条件');
+      b.appendChild(t); b.appendChild(d); b.appendChild(n);
+      row.appendChild(sw); row.appendChild(b);
+      box.appendChild(row);
+    });
+  });
+}
 <!--PART3-->
 </script>
 </body>
