@@ -1792,6 +1792,98 @@ function toast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { t.style.display = 'none'; }, 2000);
 }
+
+/* ═══════════ 提示栏与自检 ═══════════ */
+let diagRows = null;
+function renderIssues(errors, warnings) {
+  const box = $('issues');
+  if (!box) return;
+  box.innerHTML = '';
+  (errors || []).forEach(e => { const d = document.createElement('div'); d.textContent = '✕ ' + e; box.appendChild(d); });
+  (warnings || []).forEach(w => { const d = document.createElement('div'); d.className = 'warn'; d.textContent = '⚠ ' + w; box.appendChild(d); });
+  /* 自检结果不随下一次 paint 消失，否则一点就没了，白查。 */
+  if (diagRows) diagRows.forEach(t => { const d = document.createElement('div'); d.className = 'warn'; d.textContent = t; box.appendChild(d); });
+}
+function supportsToggleForce() {
+  try {
+    const d = document.createElement('i');
+    d.classList.add('a');
+    d.classList.toggle('a', true);
+    const r = d.classList.contains('a');
+    d.classList.remove('a');
+    return r;
+  } catch (e) { return false; }
+}
+function runDiag() {
+  const q = s => document.querySelectorAll(s).length;
+  let ls = '可用';
+  try { localStorage.setItem('__th', '1'); localStorage.removeItem('__th'); }
+  catch (e) { ls = '不可用（file:// 或隐私模式，本次填写关掉页面就没了）'; }
+  const bound = bindInteractive(document);
+  const rows = [
+    ['事件 · 直接绑定', bound + ' 个元素已绑'],
+    ['事件 · document 委托', '已挂'],
+    ['事件 · window 捕获', '已挂'],
+    ['classList.toggle(force)', supportsToggleForce() ? '原生支持（仍统一走 setCls）' : '旧实现不支持 → 已全部改走 setCls'],
+    ['NodeList.forEach', (typeof NodeList !== 'undefined' && NodeList.prototype.forEach) ? '原生' : '垫片'],
+    ['Element.closest', (typeof Element !== 'undefined' && Element.prototype.closest) ? '原生' : '垫片'],
+    ['渲染 · chip / pill / play-item', q('.chip') + ' / ' + q('.pill') + ' / ' + q('.play-item')],
+    ['渲染 · 角色卡 / 场景行', q('[data-char]') + ' / ' + q('.scenario')],
+    ['本地存储', ls],
+    ['产出长度', ($('output') ? $('output').textContent.length : 0) + ' 字符'],
+    ['初始化', TH.ready ? '完成' : '未完成 —— 看页面顶部的错误条'],
+  ];
+  diagRows = rows.map(r => '· 自检 · ' + r[0] + '：' + r[1]);
+  renderIssues([], []);
+  toast('自检完成：' + rows.length + ' 项');
+}
+
+function prefill() {
+  state.you = Object.assign(blankChar(), { species: 'human', gender: 'female', h: '165', w: '52', build: 'slim',
+    gen: Object.assign(blankGen(), { types: ['vaginal'], vdepth: '18', vaperture: '6', vtraits: ['selflub', 'warm'] }) });
+  state.them = Object.assign(blankChar(), {
+    species: 'nonhuman', subspecies: 'construct', gender: 'none', h: '245', build: 'heavy',
+    material: 'steel', tent: '6', tlen: '110', tail: 'metal',
+    extra: '躯干由磨砂钢与硅胶接缝构成；接缝处漏出淡蓝冷光；左眼为停用的机械义眼。',
+    gen: Object.assign(blankGen(), {
+      types: ['intersex', 'multiple'], pform: 'tentacular', pstate: 'permanent', plen: '38', pgirth: '26',
+      pdesc: '主柱为深灰橡胶质感，表面纵向排列八条可独立伸缩的短触手，末端吸盘状；柱身有一道纵向发光缝隙。',
+      vdepth: '26', vaperture: '9', vtraits: ['selflub', 'warm', 'tentacle'],
+      vdesc: '入口为纵向软质瓣膜，静止时闭合；内壁深红，附有随内部气压节律收缩的细密绒毛。',
+      orifices: ['oral', 'tailbase', 'hipseam'] }),
+  });
+  state.persona = Object.assign(blankPersona(), {
+    name: 'Sable', archetype: 'possessive', voice: ['short', 'coaxing'], initiative: 'press',
+    continuity: 'strict', warmth: 'distant', energy: 'steady', pace: 'slow',
+    attitude: '把你归进"我的"那一类，第一轮不承认，第二轮开始纠正你的措辞。',
+    habit: '重要的话说出口前会停两秒；左手无名指有旧伤，动作会绕开它。',
+    weak: '怕被丢下。被夸奖时会短暂失语、转向别处。',
+  });
+  state.obj = { on: true, rung: 'tool', flags: ['noperson', 'stored', 'noswaps'],
+    note: '编号 07。不使用时靠墙右侧。不编号为 08。坏了不修，直接换。' };
+  state.after = { on: true, mode: 'standard', parts: ['water', 'clean', 'checkin', 'debrief', 'stay'], timing: 'night',
+    note: '结束后先把被子盖好再说话。' };
+  state.style = Object.assign(blankStyle(), {
+    on: true,
+    senses: ['visual', 'audio', 'tactile', 'smell'], minSenses: '3',
+    tags: ['scale', 'novice', 'unaware'], talk: ['order', 'own'], scope: ['orgasmctl', 'edge', 'objectify'],
+    length: 'medium',
+  });
+  state.posYou = ['submissive']; state.posThem = ['dominant'];
+  state.titlesYou = ['宠物 / Pet', '婊子 Slut / Bitch', '肉便器 Fleshlight'];
+  state.titlesThem = ['主人 / Owner'];
+  state.plays = {};
+  COMMON.forEach(c => { state.plays[c.en] = c.lv; });
+  state.playsMode = 'pick'; state.playsOnly = false;
+  PLAYS.forEach(g => g.items.forEach(it => { state.open[it.en] = true; }));
+  state.scenarios = {
+    breath: { on: true, note: '仰卧，机械胸腔开启通风口；掌心贴胸骨随时可抬离；安全词「熄灯」，轻拍三下即刻松手。' },
+    size: { on: true, note: '身高差 80cm，量级差是本场核心；对方始终保留托举与压制的空间优势。' },
+  };
+  state.tone = 'clinical';
+  state.safety = { safeword: '熄灯 / Lights out', aftercare: 'required', limits: '不涉及面部核心；不拆卸对方接缝；痕迹不超过 24 小时。' };
+  hydrate(); paint();
+}
 <!--PART3-->
 </script>
 </body>
