@@ -240,6 +240,69 @@
 </style>
 </head>
 <body>
+
+<div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title" hidden>
+  <div class="gate-wrap" id="gate-wrap" tabindex="-1">
+    <div class="gate-inner">
+      <div class="gate-mark">
+        <h1 id="gate-title">Trojan Horse</h1>
+        <p>a private instrument</p>
+        <p class="cn">特洛伊木马 · 私人器具</p>
+        <span class="gate-tag">18R · Adults only</span>
+      </div>
+      <div class="gate-box alert">
+        <h2>内容警告 · 18R</h2>
+        <p>本工具用于生成<strong>成人向虚构角色扮演</strong>的设定文本，面向已达成年、完全自愿的合意幻想。</p>
+        <p>生成内容可能包含露骨的身体描写、非常规（非人类）身体结构，以及支配—臣服权力关系、束缚与强制类情境。</p>
+        <p>请仅在你已年满所在国家／地区法定成年年龄、且自愿接触此类内容的前提下继续。若不符合，请直接离开。</p>
+      </div>
+      <div class="gate-box">
+        <h2>它做什么 · 用途</h2>
+        <p>把「我想要什么」「对方是什么」「底线在哪」三件事，写成一份能直接贴给模型的说明书。</p>
+        <p>它不预设你怎么用。常见的一类用法是与 AI 角色建立情感或性关系的用户；但同样可以只把它当一份角色档案生成器，或者一个反复打磨的设定草稿本。</p>
+        <ul>
+          <li>把偏好拆成可勾选的强度、场景与边界，而不是每次重新描述</li>
+          <li>把对方写成身体 + 性格 + 事后的双档案，让它跨轮次保持一致</li>
+          <li>把底线写死在最前面，交给模型当硬约束而不是建议</li>
+          <li>把「同意」与「强度」分成两套机制，不让重口味被误读成许可</li>
+        </ul>
+      </div>
+      <div class="gate-box">
+        <h2>它不做什么 · 边界</h2>
+        <p>它不联网、不上传、不记录你的任何填写内容（所有数据只存在你自己浏览器的本地存储里）。它不生成图片，不代替你做决定。</p>
+        <p>它也无法保证模型一定遵守安全框架——所以请在开始前和对方谈清楚，而不是只依赖这份文本。</p>
+      </div>
+      <label class="gate-check">
+        <input type="checkbox" id="gate-remember">
+        <span>记住我的选择，以后不再显示此页</span>
+      </label>
+      <div class="gate-actions">
+        <button class="gate-btn" id="gate-enter" data-action="gate-enter" onclick="TH.gateEnter()">我已成年并理解 · 继续</button>
+        <button class="gate-leave" data-action="gate-exit" onclick="TH.gateExit()">离开</button>
+      </div>
+      <p class="gate-fine">这是一个离线单文件网页。关闭页面后所有内容仍留在本机，你随时可以点顶部的「18R」重新阅读此说明。</p>
+    </div>
+  </div>
+</div>
+
+<div class="container" id="app">
+  <header>
+    <div class="header-tools">
+      <button class="theme-btn" data-action="gate-open" onclick="TH.open()" title="重新阅读使用说明">18R</button>
+      <button class="theme-btn" data-action="diag" onclick="TH.diag()" title="自检：事件通道、渲染完整性、本地存储">⚙</button>
+      <button class="theme-btn" data-action="lang" id="lang-btn" title="切换产出的正文语言">输出 EN</button>
+      <button class="theme-btn" data-action="theme" id="theme-btn" aria-label="切换夜间模式">☾ Night</button>
+    </div>
+    <h1>Trojan Horse</h1>
+    <p>a private instrument</p>
+    <p class="cn">特洛伊木马 · 私人器具</p>
+  </header>
+
+  <div class="fatal" id="fatal" hidden></div>
 <!--PART2-->
+</div>
+
+<div class="gone" id="gone" hidden><p>已离开。<span style="font-family:var(--serif-cn)">刷新页面可重新开始。</span></p></div>
+<!--PART3-->
 </body>
 </html>
