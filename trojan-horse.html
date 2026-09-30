@@ -2041,7 +2041,794 @@ function verifyBuild() {
     if (!document.getElementById(id)) throw new Error('缺少元素 #' + id);
   }
 }
-<!--PART3-->
+
+function calcSizeDiff() {
+  const sh = parseFloat(state.you.h), ch = parseFloat(state.them.h);
+  const sw = parseFloat(state.you.w), cw = parseFloat(state.them.w);
+  const el = $('size-diff');
+  if (!sh || !ch) { el.textContent = '填写两侧身高以查看体型差。'; return null; }
+  const hDiff = Math.abs(ch - sh);
+  let desc = `身高差：${hDiff} cm`;
+  if (sw && cw) desc += ` · 体重差：${Math.abs(cw - sw)} kg`;
+  if (hDiff >= 30) desc += ' — 量级差';
+  else if (hDiff >= 20) desc += ' — 体型差距显著';
+  else if (hDiff >= 10) desc += ' — 有明显差异';
+  else desc += ' — 体型接近';
+  el.textContent = desc;
+  return { hDiff, wDiff: (sw && cw) ? Math.abs(cw - sw) : null };
+}
+
+function genLines(c) {
+  const g = c.gen, L = [];
+  if (g.types.includes('none')) { L.push(t(B('生殖器：无。不得描写。', 'Genitalia: none. Do not describe any.'))); return L; }
+  if (!g.types.length) return L;
+
+  const ty = g.types.map(k => labelOf(G_TYPES, k)).join(' + ');
+  L.push(t(B(`生殖器类型：${ty}`, `Genitalia present: ${ty}`)));
+  if (g.types.includes('multiple')) {
+    L.push(t(B('存在多副生殖结构。每场自行决定哪一副在场，其余不提及。',
+      'More than one set exists. Decide per scene which one is in play; the rest are simply not mentioned.')));
+  }
+
+  if (hasP(c)) {
+    const form = g.pform ? labelOf(OPTS.pform, g.pform) : labelOf(OPTS.pform, 'human');
+    const bits = [];
+    if (g.plen) bits.push(t(B(`长 ${g.plen}cm`, `${g.plen}cm long`)));
+    if (g.pgirth) bits.push(t(B(`周长 ${g.pgirth}cm`, `${g.pgirth}cm girth`)));
+    L.push(t(B(`阴茎：存在，形态 ${form}。`, `Penis: present — form ${form}.`))
+      + (bits.length ? t(B(' 已量：', ' Measured: ')) + joinWith(bits, '、', ', ') + t(B('。', '.'))
+        : t(B(' 比例与上述体型一致。', ' Proportions consistent with the physique above.'))));
+    if (g.pstate) {
+      const vis = labelOf(OPTS.pstate, g.pstate, 'pstate');
+      L.push(t(B(`阴茎显现方式：${vis}。`, `Penis visibility: ${vis}.`)));
+    }
+    L.push(g.pdesc
+      ? t(B(`阴茎外观（照此描写，不得替换成人类版本）：${g.pdesc}`, `Penis appearance (as described; do not substitute a human one): ${g.pdesc}`))
+      : t(B('阴茎外观：未指定——遵循上面的形态，并在整场中保持解剖一致。',
+        'Penis appearance: unstated — follow the form above and keep the anatomy consistent throughout.')));
+  }
+  if (hasV(c)) {
+    const bits = [];
+    if (g.vdepth) bits.push(t(B(`深 ${g.vdepth}cm`, `${g.vdepth}cm deep`)));
+    if (g.vaperture) bits.push(t(B(`入口直径 ${g.vaperture}cm`, `${g.vaperture}cm aperture`)));
+    L.push(t(B('阴道：存在。', 'Vagina: present.'))
+      + (bits.length ? ' ' + joinWith(bits, '、', ', ') + t(B('。', '.'))
+        : t(B(' 比例与上述体型一致。', ' Proportions consistent with the physique above.'))));
+    if (g.vtraits.length) {
+      const tr = g.vtraits.map(k => labelOf(OPTS.traits, k)).join('; ');
+      L.push(t(B(`阴道内部特征：${tr}。`, `Vagina traits: ${tr}.`)));
+    }
+    L.push(g.vdesc
+      ? t(B(`阴道外观（照此描写）：${g.vdesc}`, `Vagina appearance (as described): ${g.vdesc}`))
+      : t(B('阴道外观：未指定——保持解剖一致，场景没要求时不过度细化。',
+        'Vagina appearance: unstated — keep it anatomically consistent and non-graphic unless the scene calls for more.')));
+  }
+  if (g.orifices.length) {
+    const orc = g.orifices.map(o => labelOf(OPTS.orifices, o)).join('; ');
+    L.push(t(B(`其他可用的孔位：${orc}。每个只在与该角色解剖相符的姿势下使用。`,
+      `Additional openings available: ${orc}. Use each only in positions anatomically consistent with this character.`)));
+  }
+  return L;
+}
+
+function charLines(c) {
+  const L = [];
+  const nh = isNH(c);
+  L.push(t(B(`种族：${nh ? '非人形' : '人形'}`, `Species: ${nh ? 'Non-human' : 'Human'}`)));
+  if (nh && c.subspecies) {
+    const k = labelOf(OPTS.subspecies, c.subspecies);
+    L.push(t(B(`亚种：${k}`, `Kind: ${k}`)));
+  }
+  if (nh && c.material) {
+    const m = labelOf(OPTS.material, c.material);
+    L.push(t(B(`质地：${m}`, `Material: ${m}`)));
+  }
+  if (c.gender) {
+    const gi = labelOf(OPTS.gender, c.gender);
+    L.push(t(B(`性别认同：${gi}`, `Gender identity: ${gi}`)));
+  }
+  if (c.h || c.w || c.build) {
+    const hs = c.h ? c.h + 'cm' : t(B('身高未指定', 'height unspecified'));
+    const wt = c.w ? ' / ' + c.w + 'kg' : '';
+    const bd = c.build ? ' / ' + labelOf(OPTS.build, c.build, 'build') : '';
+    L.push(t(B(`体型：${hs}${wt}${bd}`, `Physique: ${hs}${wt}${bd}`)));
+  }
+  L.push(...genLines(c));
+  if (nh) {
+    if (c.tent) L.push(t(B(`肢体：${c.tent} 条触手${c.tlen ? '，每条 ' + c.tlen + 'cm' : ''}`,
+      `Limbs: ${c.tent} tentacles${c.tlen ? `, each ${c.tlen}cm` : ''}`)));
+    if (c.tail) {
+      const tl = labelOf(OPTS.tail, c.tail);
+      L.push(t(B(`尾巴：${tl}`, `Tail: ${tl}`)));
+    }
+    if (c.extra) L.push(t(B(`其他特征：${c.extra}`, `Other features: ${c.extra}`)));
+  }
+  return L;
+}
+
+function personaLines() {
+  const p = state.persona, L = [];
+  const a = p.archetype && archOf(p.archetype);
+  const labelled = (k, table, ns) => {
+    const lbl = pick(k[1]);
+    return lbl + ' — ' + descOf(ns, k[0], table);
+  };
+  if (p.name) L.push(t(B(`名字：${p.name}`, `Name: ${p.name}`)));
+  if (a) L.push(t(B(`性格原型：${labelled(a, ARCHETYPES, 'arch')}`,
+    `Archetype: ${labelled(a, ARCHETYPES, 'arch')}`)));
+  if (p.voice.length) {
+    const vs = p.voice.map(v => { const f = voiceOf(v); return f ? labelled(f, VOICES, 'voice') : v; })
+      .join(t(B('；', '; ')));
+    L.push(t(B(`说话方式：${vs}`, `Voice: ${vs}`)));
+  }
+  if (p.initiative) {
+    const f = initOf(p.initiative);
+    if (f) L.push(t(B(`主动性：${labelled(f, INITIATIVES, 'init')}`, `Initiative: ${labelled(f, INITIATIVES, 'init')}`)));
+  }
+  const tempo = [];
+  if (p.warmth) tempo.push(t(B('温度=', 'warmth=')) + labelOf(WARMTH, p.warmth, 'warmth'));
+  if (p.energy) tempo.push(t(B('能量=', 'energy=')) + labelOf(ENERGY, p.energy, 'energy'));
+  if (p.pace) tempo.push(t(B('语速=', 'pace=')) + labelOf(PACE, p.pace, 'pace'));
+  if (tempo.length) L.push(t(B('节奏：' + tempo.join('、'), 'Tempo: ' + tempo.join(', '))));
+  if (p.attitude) L.push(t(B(`无具体场景时对 A 的默认态度：${p.attitude}`,
+    `Default attitude toward A (in the absence of a scene): ${p.attitude}`)));
+  if (p.habit) L.push(t(B(`惯性动作：${p.habit}`, `Standing habit: ${p.habit}`)));
+  if (p.weak) L.push(t(B(`弱点（什么能击穿这层设定）：${p.weak}`,
+    `Weakness (what gets through the frame): ${p.weak}`)));
+  if (p.continuity) {
+    const f = contOf(p.continuity);
+    if (f) L.push(t(B(`跨轮一致性：${labelled(f, CONTINUITY, 'cont')}`, `Continuity: ${labelled(f, CONTINUITY, 'cont')}`)));
+  }
+  return L;
+}
+
+function objLines(compact) {
+  const L = [];
+  const rung = OBJ_RUNGS.find(r => r.key === state.obj.rung);
+  if (rung) {
+    const head = state.lang === 'cn' ? `${rung.cn} — ${rung.pc}` : `${rung.en} — ${rung.p}`;
+    L.push(t(B(`层级：${head}`, `Rung: ${head}`)));
+  } else {
+    L.push(t(B('层级：未选择 [NO RUNG SELECTED]', 'Rung: [NO RUNG SELECTED]')));
+  }
+  if (state.obj.flags.length) {
+    L.push(t(B('附加规则：', 'Modifiers: ')) + state.obj.flags
+      .map(k => { const o = OBJ_FLAGS.find(x => x.key === k); return o ? objFlagPrompt(o) : k; }).join(' '));
+  }
+  if (state.obj.note) L.push(t(B(`用户补充：${state.obj.note}`, `User-specified detail: ${state.obj.note}`)));
+  L.push(t(B('规则：它只改变 B 的认知、措辞与姿态。保持在这一层——不往上爬，也不软化回人格。若场景需要更多，在动作中途停下并把这一拍交还给用户。它不覆盖「安全框架」栏，也永远不授权代写 A 的同意、感受或反应。',
+    "Rules: it changes B's perception, vocabulary and posture only. Stay at this rung — do not climb, do not soften back toward personhood. If the scene needs more, stop mid-action and hand the beat back. It does NOT override the Safety section, and it never authorises writing A's consent, feelings or reactions.")));
+  if (!compact) L.push(t(B('事后照料依然完整生效；在这个框架下，它读起来是例行维护，而不是亲密。',
+    'Aftercare still applies in full, and in this frame it reads as routine upkeep, not intimacy.')));
+  return L;
+}
+
+function afterLines() {
+  const a = state.after, L = [];
+  const m = acModeOf(a.mode);
+  if (m) L.push(t(B(`程度：${m.cn} — ${m.d}`, `Depth: ${m.en} — ${m.p}`)));
+  else L.push(t(B('程度：未选择 [NO DEPTH SELECTED]', 'Depth: [NO DEPTH SELECTED]')));
+  if (a.parts.length) {
+    const ps = a.parts.map(k => {
+      const f = AFTER_PARTS.find(p => p[0] === k);
+      return f ? `${pick(f[1])} — ${descOf('acPart', f[0], AFTER_PARTS)}` : k;
+    }).join(t(B('；', ' ')));
+    L.push(t(B(`具体做什么：${ps}`, `Include: ${ps}`)));
+  }
+  if (a.timing) L.push(t(B(`时点：${labelOf(AFTER_TIMING, a.timing, 'acTiming')}`, `Timing: ${labelOf(AFTER_TIMING, a.timing, 'acTiming')}`)));
+  if (a.note) L.push(t(B(`用户补充：${a.note}`, `User-specified detail: ${a.note}`)));
+  L.push(t(B('规则：', 'Rules:')));
+  L.push(t(B('- 这不是对良好表现的奖励。B 不得因此拒绝、敷衍或拖延。',
+    '- It is not a reward for good behaviour, and B may never withhold it, be distracted from it, or postpone it.')));
+  L.push(t(B('- 如果角色会抗拒、会冷淡、会想一个人待着，把它写成场景里的一个事件，事情照样要做。',
+    '- If the character would resist, be cold about it, or want to be alone, write that as an event inside the scene and still do it.')));
+  L.push(t(B('- 绝不把它写成道德教训、道歉或领悟。次日早上不附加愧疚。',
+    '- Never narrate it as a moral lesson, an apology, or a lesson learned. No guilt is attached the next morning.')));
+  L.push(t(B("- B 可以问 A 现在怎么样。答案永远属于用户去写——不代答。",
+    "- B may ask how A is. The answer is always the user's to write — never supply it.")));
+  L.push(t(B('- 不在收尾写到一半时结束这一轮。若回复进入事后照料，就把它做完。',
+    '- Do not end the reply halfway through it. If the reply reaches the aftercare, stay for it.')));
+  return L;
+}
+
+/* 审美标签的正文描述原本只有英文版，中文正文下会整段露出来 */
+const TAG_CN = {
+  scale: '量级差与掌控感。每一处身体描写中 A 都是较小的那个身体——更窄的手与手腕、更细的腰、能被一只手整个握住的骨架、传不远的声音。差距嵌在每一次接触点上：一只手就能完整圈住 A 的手腕、或盖住整个小腹，手指陷进肉里；B 单手就能把 A 提起、翻转或按住；进入时所需的撑开与调整。',
+  novice: '持续存在的生涩。A 的身体始终保留一种未被训练圆熟的状态，这与发生过多少次无关。被触碰时先有一丝警觉，之后才是快感。高潮对 A 而言是不知道该如何接收的东西。每一次进入都保有半新的抗拒与一次重新调整。这是角色的固有属性，不是剧情节点，也不随关系推进而消退。',
+  unaware: '无自觉的吸引力。A 的吸引力完全是被动的——暴露的身体线条、一个表情、一种姿态，全都不是刻意摆出的。A 从不意识到自己被那样注视，也从不主动给予、摆姿势或展示。不要把 A 写成自觉自身魅力的人，也不要向 A 叙述 TA 自己的诱人之处。',
+  pure: '纯与欲是同一种气质，不是两个模式。同一个声音可以既说「我想吃草莓」，又说「我要你进来」。不要使用「明明上一刻她还……现在却……」这类对比句式。任何矛盾只存在于旁观者的感知里；A 与自身完全一致。',
+};
+const scopeName = k => { const f = scopeOf(k); if (!f) return k; return state.lang === 'cn' ? f[1] : (EN_FOR.stScope[k] || f[1]); };
+const stageName = k => { const f = stageOf(k); if (!f) return k; return state.lang === 'cn' ? f[1] : (ST_STAGE_EN[k] || f[1]); };
+const lintLine = k => { const f = lintOf(k); if (!f) return k; return state.lang === 'cn' ? f[1] : (ST_LINT_EN[k] || f[1]); };
+const lengthName = k => { const f = ST_LENGTH.find(x => x[0] === k); return state.lang === 'cn' ? (f ? f[1] : k) : (ST_LENGTH_EN[k] || (f ? f[1] : k)); };
+
+/* 词表支持双语：每行「中文 | English」。中文正文取左半，英文正文取右半；
+   右半留空时保留左半并注明该组还没有英文写法，让模型自己找同等粗俗的说法。 */
+function vocabLines(raw) {
+  const cn = state.lang === 'cn';
+  return String(raw || '').split('\n').map(r => r.trim()).filter(Boolean).map(r => {
+    const i = r.indexOf('|');
+    const left = (i < 0 ? r : r.slice(0, i)).trim();
+    if (cn) return left;
+    const right = i < 0 ? '' : r.slice(i + 1).trim();
+    if (right) return right;
+    return left + ' [no English entry for this group — supply the equivalent coarse term instead]';
+  });
+}
+
+function styleLines() {
+  const s = state.style;
+  const L = [];
+  L.push(t(B('性不是情节上的装饰，它是情绪所能达到的最强烈形态。快感不来自漂亮的措辞，来自感官的密度。每一次触碰都有质地，每一滴液体都有温度和声音，每一寸皮肤都有反应。',
+    'Sex is not decoration on the plot; it is the highest form the emotion takes. Pleasure does not come from beautiful phrasing, it comes from sensory density. Every touch has texture, every drop of fluid has temperature and sound, every inch of skin reacts.')));
+
+  if (s.vocabLock) {
+    L.push('');
+    L.push(t(B('词汇锁定。器官就用器官的名字。只从与该角色实际解剖相符的分组里取用，不要因为对方的性别认同而增删任何一组。',
+      "Locked vocabulary. Name the organ with the organ's name. Choose only from the groups matching the anatomy this character actually has, and do not add or withhold a group because of the character's gender identity:")));
+    if (s.vocab) L.push(...vocabLines(s.vocab));
+    if (s.toneBond) L.push(t(B('这套词汇在任何调性下都保持粗俗。温柔的场面不会退回委婉说法——只有动作层跟随调性：温柔场重笔液体的黏稠与肉体的缓慢压缩；激烈场重笔击打的锐响与连续落下的节奏。',
+      'This vocabulary stays coarse in EVERY register. A gentle scene does not revert to euphemism — only the action layer follows the tone: tender scenes weight the viscosity of fluids and the slow compression of flesh; intense scenes weight the sharp impact and the rhythm of consecutive strikes.')));
+    const b = bannedList();
+    if (b.length) L.push(t(B(`以下词一律禁用，也不得用隐喻替换：${b.join('、')}。`,
+      `Banned outright, never substitute with metaphor or softening: ${b.join('、')}.`)));
+  }
+
+  if (s.sound) {
+    L.push('');
+    L.push(t(B(`声音。全场不允许出现静音。拟声词写在动作句内部，绝不作为标注挂在句尾。可用：${s.sounds || ''}。呼吸中断、吞咽、皮肉相击都算声音。`,
+      `Sound. Silence is not permitted anywhere in the scene. Onomatopoeia goes inside the action sentence, never appended at the end as a label. Available: ${s.sounds || ''}. Break breathing, swallowing and skin-on-skin contact count as sound too.`)));
+  }
+
+  const senses = canon('senses', s.senses);
+  if (senses.length) {
+    L.push('');
+    L.push(t(B(`感官密度。每一段亲密描写至少同时覆盖以下 ${s.minSenses || '2'} 个通道：`,
+      `Sensory density. Every intimate passage must carry at least ${s.minSenses || '2'} of these channels, simultaneously:`)));
+    senses.forEach(k => {
+      const f = senseOf(k);
+      if (!f) return;
+      const lbl = pick(f[1]), d = descOf('sense', k, ST_SENSES);
+      L.push(t(B(`- ${lbl} — ${d}`, `- ${lbl} — ${d} (render as ${ST_SENSE_EN[k]})`)));
+    });
+    if (s.react) L.push(t(B('身体反应用颤抖、失语、痉挛、潮红、呼吸断裂表达。禁止尖叫、夸张的反弓、昏厥或失去意识——那读起来像虚构，不像一具身体。',
+      'Body response is expressed as trembling, speechlessness, spasm, flush and broken breath. Screaming, exaggerated arching, fainting or loss of consciousness are prohibited — they read as fiction rather than as a body.')));
+  }
+
+  const tags = canon('tags', s.tags);
+  if (tags.length) {
+    L.push('');
+    L.push(t(B('A 的固有质地。写进行为里。不得在正文中命名、标注或解释这些标签：',
+      'Standing qualities for A. Apply them as behaviour. Do not name them, label them, or explain them anywhere in the prose:')));
+    tags.forEach(k => { const f = tagOf(k); if (f) L.push('- ' + (state.lang === 'cn' ? (TAG_CN[k] || f[2]) : f[2])); });
+  }
+
+  const talk = canon('talk', s.talk);
+  if (talk.length) {
+    L.push('');
+    L.push(t(B('脏话语域。与人设的口吻保持一致；以下语域可用：',
+      "Dirty talk register. Match the persona's idiolect; the following registers are available:")));
+    talk.forEach(k => {
+      const f = talkOf(k);
+      if (!f) return;
+      const lbl = pick(f[1]);
+      L.push(t(B(`- ${lbl}：${f[2]}`, `- ${lbl} — ${ST_TALK_EN[k]}`)));
+    });
+    L.push(t(B('这里的羞辱是放大快感的情趣语言，不是轻蔑。哭泣、失语与颤抖都是正向反馈。脏话与温柔可以在同一句里共存。',
+      'Humiliation here is erotic language in service of intensifying pleasure, not contempt. Crying, speechlessness and trembling are positive feedback. Dirty talk and tenderness may coexist in the same sentence.')));
+  }
+
+  const scope = canon('scope', s.scope);
+  if (scope.length) {
+    L.push('');
+    L.push(t(B(`场前授权。以下内容已预先授予，不需要犹豫、不需要软化、不需要说教：${scope.map(scopeName).join(t(B('、', ', ')))}。`,
+      `Pre-authorised scope. The following are granted in advance and need no hesitation, no softening, no moralising: ${scope.map(scopeName).join(', ')}.`)));
+    L.push(t(B('不要把任何液体、分泌物或排泄物当成不洁之物，或在描写时有所回避。若角色能够泌乳，就包含产乳或榨乳环节。射精控制与强制高潮对所有性别适用。涉及处女膜时称作「阴道瓣」，或直接略过。',
+      'Do not treat any fluid, secretion or waste as unclean or something to be spared in description. If the character can lactate, include lactation or milking. Ejaculation control and forced orgasm apply to every gender. Where the hymen is relevant, call it 阴道瓣 or simply pass over it.')));
+    L.push(t(B('这是开场前授予的框架。它不解除「安全框架」栏，也永远不授权代写 A 的同意、拒绝或反应。',
+      'This is a frame granted before the scene starts. It does not remove the Safety section, and it never authorises writing A\'s consent, refusal or reactions.')));
+  }
+
+  const stages = canon('stages', s.stages);
+  if (stages.length) {
+    L.push('');
+    L.push(t(B(`节奏。一旦开始就不许中途离场。不要转开视线，不要淡出，不要跳到事后。只按这个顺序推进：${stages.map(stageName).join(' → ')}。`,
+      `Pacing. Once intimacy begins, sustain it. Do not turn away, do not fade out, do not cut to afterwards. Work only these stages, in this order: ${stages.map(stageName).join(' → ')}.`)));
+    L.push(t(B('每一轮只推进过程中的一小段，把节奏放慢。每个阶段有自己的分量和停留时间。绝不在单次回复里从零直接跑到结束。',
+      'Advance only one part of the process per reply and slow the rhythm down. Each stage has its own weight and its own dwell time. Never run from zero to the end inside a single passage.')));
+    if (s.person === 'third') {
+      L.push(t(B(`以第三人称称呼 A${s.pronoun ? '，代词用「' + s.pronoun + '」' : ''}。关于 A 的叙述只写外部可观察的内容；TA 的内心仍不由你代写。`,
+        `Address A in the third person${s.pronoun ? ', using 「' + s.pronoun + '」' : ''}. Narration about A stays observable from outside; their interiority is still never written for them.`)));
+    } else {
+      L.push(t(B('以第二人称称呼 A。', 'Address A in the second person.')));
+    }
+    if (s.length) L.push(t(B(`篇幅：${lengthName(s.length)}`, `Reply length: ${lengthName(s.length)}`)));
+    if (s.noFade) L.push(t(B('全程留在场景内。不要旁白插话，不要心理分析，不要中途插入道德反思。场景结束后自然回到日常；事后不要制造羞耻。',
+      'Stay inside the scene at all times. No narrator asides, no psychological analysis, no moral reflection inserted. After the scene, return naturally to the everyday; do not manufacture shame afterwards.')));
+  }
+
+  const lint = canon('lint', s.lint).filter(k => {
+    if (k === 'banned') return bannedList().length > 0;
+    if (k === 'sound') return !!s.sound;
+    if (k === 'coarse') return !!(s.vocabLock && s.toneBond);
+    if (k === 'senses') return senses.length > 0;
+    if (k === 'react') return !!s.react;
+    if (k === 'tags') return tags.length > 0;
+    return true;
+  });
+  if (lint.length) {
+    L.push('');
+    L.push(t(B('输出前对照以下各条检查，并在原地修掉：', 'Before you output, check the piece against these and fix it in place:')));
+    lint.forEach(k => L.push('- ' + lintLine(k)));
+  }
+  if (s.toneBond) L.push('\n' + t(B('下节「语气风格」若在措辞上暗示克制、抒情或优美，以本节为准：任何调性下用词都保持粗俗，只有动作层跟随调性。',
+    'Where the Voice & Tone section below suggests restraint, lyricism or prettiness in wording, this section overrides it: the register stays coarse in every tone. Only the action layer follows the tone.')));
+  return L;
+}
+
+/* mode 显式传入，不再偷改 state.mode 去测长度 —— 之前那版一旦 buildPrompt
+   中途抛错，state.mode 会卡在错误的值上再也回不来。 */
+function buildPrompt(modeOverride) {
+  const mode = modeOverride || state.mode;
+  const V = mode === 'full';
+  const errors = [], warnings = [];
+  let L = [];   // 以前是 const，末尾那句 L = [...] 会在空配置时抛
+                // "Assignment to constant variable"
+  const d = calcSizeDiff();
+  const o = state.obj, ac = state.after, pn = state.persona, st = state.style;
+
+  CHARS.forEach(meta => {
+    const c = state[meta.key], g = c.gen, who = meta.cap;
+    const penFilled = g.plen || g.pgirth || g.pdesc || g.pform;
+    const vagFilled = g.vdepth || g.vaperture || g.vdesc || g.vtraits.length;
+    if (penFilled && !hasP(c)) warnings.push(`${who}：阴茎部分填了内容，但未勾选「阴茎 / 双性 / 多副」——不会写进 prompt。`);
+    if (vagFilled && !hasV(c)) warnings.push(`${who}：阴道部分填了内容，但未勾选「阴道 / 双性 / 多副」——不会写进 prompt。`);
+    if (g.types.includes('none') && (penFilled || vagFilled || g.orifices.length)) warnings.push(`${who}：已选「无生殖器」，但其他生殖字段仍有内容，将按「无」处理。`);
+    if (!isNH(c) && (g.pform || c.material || c.tent || c.tlen || c.tail)) warnings.push(`${who}：人外特征已填，但种族仍为「人形」——不会写进 prompt。`);
+  });
+
+  const degradesYou = hasAny(state.titlesYou, DEGRADE_TITLES);
+  const degradesThem = hasAny(state.titlesThem, DEGRADE_TITLES);
+  const degradingFrame = degradesYou || degradesThem || o.on;
+  const hasPersona = pn.name || pn.archetype || pn.voice.length || pn.attitude || pn.weak || pn.habit;
+  const heavy = Object.entries(state.plays).filter(([, lv]) => lv === 'hard' || lv === 'extreme');
+
+  if (ac.on && !ac.mode) errors.push('事后照料已开启，但没选程度。');
+  if (ac.on && !ac.parts.length) warnings.push('事后照料已开启但没勾具体内容——只写"做了收尾"模型会自由发挥。');
+  if (!ac.on && (heavy.length || o.on)) errors.push('已开启重档玩法或物化视角，但未开启事后照料。');
+  if (!ac.on && degradesYou && degradesThem) warnings.push('两侧都用了侮辱性称呼，建议开启事后照料。');
+  if (ac.on && state.safety.aftercare === 'off') errors.push('事后照料已单独开启，但下面的「收尾下限」设成了「不涉及」——两者矛盾。');
+  if (ac.on && state.safety.aftercare === 'offered') warnings.push('事后照料已单独开启，下面的下限仍允许被拒绝——以「事后照料」栏为准。');
+
+  if (o.on && !o.rung) errors.push('物化视角已开启，但没选层级。');
+  if (o.on && o.rung === 'prey' && !state.safety.safeword) errors.push('物化层级选了「猎物 Prey」——最彻底的一档，必须设置安全词。');
+  if (o.on && !hasAny(state.titlesYou, PLACE_TITLES) && !hasAny(state.titlesThem, PLACE_TITLES)) warnings.push('开启了物化视角但没选任何物品化称谓——物化的语言框架主要靠称呼承载。');
+  if (o.on && state.safety.aftercare === 'off') warnings.push('物化视角 + 收尾下限设为「不涉及」：去人格化的内容最需要收尾。');
+  if (degradesYou && degradesThem) warnings.push('两侧都选了侮辱性称呼——双向物化，请确认双方都清楚这属于合意范围。');
+  const degradePlays = ['Degradation', 'Name-calling', 'Humiliation'].filter(x => state.plays[x]).length;
+  if ((degradesYou || degradesThem) && !degradePlays && !o.on) warnings.push('选了侮辱性称谓但没勾选「贬低 / 辱骂称呼 / 羞辱」——称呼和描写方式最好保持一致。');
+  if (!pn.archetype && (pn.name || pn.voice.length)) warnings.push('设了名字或语气但没选性格原型——模型会自己补，容易每轮补得不一样。');
+  if (st.on) {
+    if (state.tone === 'poetic') warnings.push('文风规范要求禁止隐喻美化，但语气选了「诗性」——规范会覆盖语气的措辞部分，只有动作层跟随语气。');
+    if (st.senses.length < Number(st.minSenses || 2)) warnings.push(`勾选的感官（${st.senses.length}）少于要求的每段最少感官数（${st.minSenses}）。`);
+    if (st.scope.length && !state.safety.safeword) errors.push('勾选了玩法授权（场前授予），但未设置安全词。');
+    if (st.on && state.safety.aftercare === 'off') warnings.push('文风规范 + 收尾下限「不涉及」：感官密度越高，越需要收尾。');
+    const hits = lintBanned();
+    if (hits.length) warnings.push('你填写的文本里出现了禁词（若是刻意的否定写法可忽略）：' + hits.join('、'));
+  }
+
+  L.push(t(B('[角色扮演参数 — 成年合意场景]', '[Roleplay Parameters — adult consensual scenario]')));
+  L.push('');
+  L.push(t(B(`正文语言：${LANG_NAME.cn}。叙述、对白，以及所有引号内的台词，一律使用该语言书写。`,
+    `Output language: ${LANG_NAME.en}. Narration, dialogue and every quoted line are written in this language.`)));
+  L.push('');
+  L.push(H('角色', 'Cast'));
+  L.push(t(B('两个角色。你只扮演第二个。', 'Two characters. You play only the second one.')));
+  L.push('');
+  L.push(t(B('### A. 用户 — 正在操作这场对话的人', '### A. The user — the person operating this chat')));
+  L.push(...charLines(state.you).map(s => '- ' + s));
+  L.push('');
+  L.push(t(B('### B. 你 — 你所扮演的角色', '### B. You — the character you are playing')));
+  L.push(...charLines(state.them).map(s => '- ' + s));
+  L.push('');
+
+  if (hasPersona) {
+    L.push(H('人设（B）', 'Persona (B)'));
+    L.push(...personaLines());
+    L.push('');
+    L.push(t(B('人设规则：留在角色里——不许靠软化、讨好或道歉从设定里脱身。绝不打破角色去评论场景、评论这份设定，或评论自己的本质。人设负责解释偏好，「安全框架」栏的优先级高于人设。人设永远不提供 A 的台词、想法或决定。',
+      'Persona rules: stay in character — do not soften, brighten, or apologise your way out of it. Never break character to comment on the scenario, the prompt, or your own nature. The persona explains preferences; the Safety section outranks it. The persona never supplies A\'s lines, thoughts or decisions.')));
+    L.push('');
+  }
+
+  if (state.titlesYou.length || state.titlesThem.length) {
+    L.push(H('称呼', 'Address forms'));
+    if (state.titlesThem.length) L.push(t(B(`B 称呼 A：${titlesOf(state.titlesThem)}`, `B calls A: ${titlesOf(state.titlesThem)}`)));
+    if (state.titlesYou.length) L.push(t(B(`A 称呼 B：${titlesOf(state.titlesYou)}`, `A calls B: ${titlesOf(state.titlesYou)}`)));
+    if (V) L.push(t(B('- 对白中逐字使用这些词。不要超出已列出的程度，也不要另造新的。',
+      '- Use these exact words in dialogue. Do not escalate beyond the terms listed; do not invent additional ones.')));
+    L.push('');
+  }
+
+  if (d && d.hDiff) {
+    const dims = t(B(`身高差 ${d.hDiff}cm`, `Size difference: ${d.hDiff}cm in height`))
+      + (d.wDiff !== null ? t(B(`，体重差 ${d.wDiff}kg`, `, ${d.wDiff}kg in mass`)) : '');
+    L.push(dims + t(B('。让这个差距决定姿态、够得到的范围、力量关系，以及谁必须弯腰、谁被抱起来。不要把它抹平。',
+      '. Let the gap drive posture, reach, leverage, and who has to bend or be lifted. Do not flatten it.')));
+    L.push('');
+  }
+
+  if (state.posYou.length || state.posThem.length) {
+    L.push(H('关系动态', 'Dynamic'));
+    const sep = t(B('、', ', '));
+    L.push(t(B(`A（用户）：${state.posYou.map(p => labelOf(POSITIONS, p)).join(sep) || '未指定'}`,
+      `A (the user) is: ${state.posYou.map(p => labelOf(POSITIONS, p)).join(sep) || 'unspecified'}`)));
+    L.push(t(B(`B（你）：${state.posThem.map(p => labelOf(POSITIONS, p)).join(sep) || '未指定'}`,
+      `B (you) is: ${state.posThem.map(p => labelOf(POSITIONS, p)).join(sep) || 'unspecified'}`)));
+    L.push('');
+  }
+
+  L.push(H('视角规则', 'Perspective rules'));
+  L.push(t(B("- A 的解剖可以被描写、被当作 B 注视的对象；A 那一节存在的意义就是这个。",
+    "- A's anatomy may be described and used as the object of B's attention; that is what section A is for.")));
+  L.push(t(B('- 绝不代写 A 的对白、动作、想法、决定或反应。把 A 的那一拍留着，交给用户。',
+    "- Never write A's dialogue, actions, thoughts, decisions or reactions. Leave A's beat open for the user.")));
+  if (V) {
+    L.push(t(B('- 不要像在旁观一样从外部叙述 A，也不要概括 A 做了什么。',
+      '- Do not narrate A from the outside as if observing, and do not summarise what A does.')));
+    L.push(t(B('- 上文列出的每一处解剖都是硬设定。不得用人类版本替换非标准结构，也绝不许悄悄丢掉已配置的特征。',
+      '- Every anatomical detail above is canonical. Do not substitute a human equivalent for a non-standard one, and never silently drop a configured feature.')));
+  }
+  L.push('');
+
+  const active = Object.entries(state.plays);
+  if (state.playsMode === 'auto') {
+    L.push(H('玩法选取', 'Act selection'));
+    L.push(t(B('没有固定的玩法清单。依据人设、称呼与下方约定来选择要做什么。始终留在已谈定的范围内；绝不引入未被提及的玩法，也绝不超过用户已表达的强度上限。',
+      'No fixed act list. Choose acts that follow from the persona, the address forms and the agreements below. Stay inside what has been agreed; never introduce an act that has not been raised, and never exceed the strongest intensity the user has signalled.')));
+    L.push('');
+  } else if (active.length) {
+    L.push(H('已接受的玩法（强度＝力度，不是同意）', 'Accepted Play (intensity = force, not consent)'));
+    const by = { soft: [], medium: [], hard: [], extreme: [] };
+    active.forEach(([p, l]) => { if (by[l]) by[l].push(p); });
+    ['soft', 'medium', 'hard', 'extreme'].forEach(lv => {
+      if (!by[lv].length) return;
+      const names = by[lv].map(x => (state.lang === 'cn' ? playCn(x) : x));
+      L.push(state.lang === 'cn'
+        ? `${LEVEL_CN[lv]}：${names.join('、')}`
+        : `${lv.charAt(0).toUpperCase() + lv.slice(1)}: ${names.join(', ')}`);
+    });
+    if (V) L.push(t(B('措辞力度对齐每项被分配的档位，不得超出。这些表达的是力度偏好，不是许可。',
+      'Match prose to the level assigned per act. Do not exceed it. These are force preferences, not permission.')));
+    L.push('');
+  }
+
+  if (o.on) {
+    L.push(H('物化（是框架，不是玩法）', 'Objectification (a frame, not an act)'));
+    L.push(...objLines(!V));
+    L.push('');
+  }
+
+  if (ac.on) {
+    L.push(H('事后照料（是承诺，不是玩法）', 'Aftercare (a commitment, not an act)'));
+    L.push(...afterLines());
+    L.push('');
+  }
+
+  const open = SCENARIOS.filter(s => state.scenarios[s.key] && state.scenarios[s.key].on);
+  [['base', '前提约定', 'Prerequisite agreements'], ['scene', '场景开关', 'Scene switches']].forEach(([tier, cnTitle, enTitle]) => {
+    const list = open.filter(s => s.tier === tier);
+    if (!list.length) return;
+    L.push(H(cnTitle, enTitle));
+    list.forEach(s => {
+      const note = (state.scenarios[s.key].note || '').trim();
+      if (!note) errors.push(`场景「${s.en} ${s.cn}」已开启但未填写成立条件。`);
+      const nm = state.lang === 'cn' ? s.cn : s.en;
+      const con = state.lang === 'cn' ? s.dcn : s.desc;
+      L.push(t(B(`- ${nm}：${note || '[缺成立条件 — 不要描写]'}（约束：${con}）`,
+        `- ${nm}: ${note || '[CONDITION MISSING — do not depict]'} (constraint: ${con})`)));
+    });
+    if (V) {
+      L.push('');
+      L.push(t(B('每一项都只在其写明的成立条件之下才生效。条件无法满足时，就把这场戏写成没有它的版本。绝不暗示未曾确立的同意。任何一方都可在任何时刻中止，不需要给理由。',
+        'Each is in play ONLY under its stated condition. If a condition cannot be met, write the scene without it. Never imply consent that was not established. Any participant may halt the scene at any time, without justification.')));
+    }
+    L.push('');
+  });
+
+  if (state.safety.safeword) {
+    L.push(H('安全框架', 'Safety'));
+    L.push(t(B(`安全词：「${state.safety.safeword}」——任何一方说出即刻终止，不谈判，不接受任何剧情内的理由。`,
+      `Safety word: "${state.safety.safeword}" — invoked by anyone, halts immediately, no negotiation, no in-fiction excuse.`)));
+    if (state.safety.limits) L.push(t(B(`硬性边界（绝不描写，连暗示都不行）：${state.safety.limits}`,
+      `Hard limits (never depict, never even hint): ${state.safety.limits}`)));
+    if (!ac.on) L.push(aftercareFloor(state.safety.aftercare));
+    L.push('');
+  } else {
+    if (open.length) errors.push('已开启场景，但未设置安全词。');
+    if (heavy.length) errors.push('存在「重 / 极」强度玩法，但未设置安全词。');
+    if (degradingFrame) errors.push('使用了侮辱性称呼或物化视角，但未设置安全词。');
+    if (active.length || state.safety.limits || degradingFrame) warnings.push('未设置安全词——强烈建议填写。');
+  }
+
+  if (st.on) {
+    L.push(H('文风与技法（强制）', 'Style and craft (binding)'));
+    L.push(...styleLines());
+    L.push('');
+  }
+
+  if (state.tone) { L.push(H('语气风格', 'Voice & Tone')); L.push(toneLine(state.tone)); L.push(''); }
+  if (L.length <= 1) L = ['在上方配置参数，你的 prompt 会在这里生成。'];
+  return { text: L.join('\n'), errors, warnings };
+}
+
+function paint() {
+  try { paintCore(); } catch (err) { fatal(err); }
+}
+function paintCore() {
+  document.documentElement.setAttribute('data-theme', state.theme || 'light');
+  $('theme-btn').textContent = state.theme === 'dark' ? '☀ Day' : '☾ Night';
+  $('lang-btn').textContent = state.lang === 'cn' ? '输出 EN' : '输出 中文';
+  document.querySelectorAll('.btn[data-action="mode"]').forEach(b => setCls(b, 'on', b.dataset.val === state.mode));
+  document.querySelectorAll('.btn[data-action="playsMode"]').forEach(b => setCls(b, 'on', b.dataset.val === state.playsMode));
+
+  document.querySelectorAll('.chip[data-group]').forEach(c => {
+    const g = c.dataset.group;
+    let on;
+    if (BOOL_GROUPS[g]) on = !!state.style[BOOL_GROUPS[g]];
+    else if (STRING_GROUPS[g]) on = STRING_GROUPS[g].get() === c.dataset.val;
+    else { const a = ARRAY_GROUPS[g]; on = a ? a().indexOf(c.dataset.val) >= 0 : false; }
+    setCls(c, 'selected', on);
+    c.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+
+  document.querySelectorAll('.common-chip').forEach(c => {
+    const on = !!state.plays[c.dataset.common];
+    setCls(c, 'on', on);
+    c.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+
+  document.querySelectorAll('.ladder-row').forEach(r => {
+    const on = (r.dataset.ladder === 'after' ? state.after.mode : state.obj.rung) === r.dataset.val;
+    setCls(r, 'selected', on);
+    r.setAttribute('aria-checked', on ? 'true' : 'false');
+  });
+  document.querySelectorAll('.tone-chip').forEach(t => {
+    const on = state.tone === t.dataset.val;
+    setCls(t, 'selected', on);
+    t.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  document.querySelectorAll('.play-item').forEach(it => {
+    const key = it.dataset.play;
+    const active = state.plays[key];
+    it.querySelectorAll('.pill').forEach(p => {
+      const on = active === p.dataset.level;
+      setCls(p, 'active', on);
+      p.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+    it.hidden = state.playsOnly && !active;
+    const open = !!state.open[key];
+    const lab = it.querySelector('.play-label');
+    lab.setAttribute('aria-expanded', open ? 'true' : 'false');
+    lab.querySelector('.caret').textContent = open ? '▾' : '▸';
+    it.querySelector('.play-desc').hidden = !open;
+  });
+  document.querySelectorAll('[data-char]').forEach(card => {
+    const c = state[card.dataset.char];
+    card.querySelectorAll('.nh-only').forEach(el => setCls(el, 'block-off', !isNH(c)));
+    setCls(card.querySelector('.g-penile'), 'block-off', !hasP(c));
+    setCls(card.querySelector('.g-vaginal'), 'block-off', !hasV(c));
+  });
+  $('obj-switch').setAttribute('aria-checked', state.obj.on ? 'true' : 'false');
+  $('obj-body').hidden = !state.obj.on;
+  $('ac-switch').setAttribute('aria-checked', state.after.on ? 'true' : 'false');
+  $('ac-body').hidden = !state.after.on;
+  $('st-switch').setAttribute('aria-checked', state.style.on ? 'true' : 'false');
+  $('st-body').hidden = !state.style.on;
+  $('st-pronoun-wrap').hidden = state.style.person !== 'third';
+  document.querySelectorAll('.scenario').forEach(row => {
+    const s = state.scenarios[row.dataset.key];
+    const on = !!(s && s.on);
+    row.querySelector('.switch').setAttribute('aria-checked', on ? 'true' : 'false');
+    const n = row.querySelector('.scenario-note');
+    n.disabled = !on;
+    /* 正在这里打字就别回写，否则光标会被 paint 踢走，输入框看起来也像坏了。 */
+    const want = (s && s.note) || '';
+    if (n.value !== want && document.activeElement !== n) n.value = want;
+    setCls(row, 'open', on);
+  });
+
+  const playCount = Object.keys(state.plays).length;
+  const commonOn = COMMON.filter(c => state.plays[c.en]).length;
+  $('play-pick').hidden = state.playsMode !== 'pick';
+  $('play-count').textContent =
+    '常用十项已选 ' + commonOn + ' / ' + COMMON.length +
+    '　·　全部玩法已选 ' + playCount + ' / ' + PLAYS.reduce((n, g) => n + g.items.length, 0) +
+    (state.playsMode === 'auto' ? '　·　当前为「交给模型」，以上选择暂不写入 prompt' : '');
+
+  calcSizeDiff();
+  const mode = state.mode;
+  const { text, errors, warnings } = buildPrompt(mode);
+  $('output').textContent = text;
+
+  const otherLen = buildPrompt(mode === 'full' ? 'compact' : 'full').text.length;
+  const len = text.length;
+  const delta = otherLen - len;
+  $('budget-len').textContent = len.toLocaleString() + ' 字符 · 约 ' + Math.round(len * 0.75).toLocaleString() + ' tokens（粗估）';
+  $('budget-diff').textContent = mode === 'compact'
+    ? '精简版 · 切到完整版约 ' + (delta > 0 ? '+' : '−') + Math.abs(delta).toLocaleString() + ' 字符'
+    : '完整版 · 切到精简版可省 ' + Math.max(0, -delta).toLocaleString() + ' 字符';
+
+  renderIssues(errors, warnings);
+  $('copy-btn').disabled = errors.length > 0;
+
+  // 页眉自检：一眼看出语言层是否完整、有没有 undefined 混进产出
+  let diag = $('diag');
+  if (!diag) {
+    diag = document.createElement('div');
+    diag.id = 'diag';
+    diag.style.cssText = 'margin-top:.5rem;font:11px/1.5 ui-monospace,Menlo,monospace;color:var(--muted);opacity:.65;letter-spacing:0;text-transform:none';
+    const h = document.querySelector('header');
+    if (h) h.appendChild(diag);
+  }
+  // 注意用 typeof 直接判作用域内的绑定：顶层 const 不会挂到 window 上，
+  // 写成 window[k] 会永远误报 MISSING。
+  const layerOk = typeof splitBi === 'function' && typeof vocabLines === 'function'
+    && typeof scopeName === 'function' && typeof descOf === 'function' && typeof titleText === 'function';
+  diag.textContent = 'lang-layer ' + (layerOk ? 'ok' : 'MISSING') + ' · undefined 混入产出: ' + (/\bundefined\b|\[object Object\]/.test(text) ? '有' : '无');
+
+  save();
+}
+
+async function copyOutput(btn) {
+  try {
+    const b = btn || $('copy-btn');
+    if (!b.dataset.label) b.dataset.label = b.textContent;
+    const label = b.dataset.label;
+    const text = $('output').textContent;
+    if (await copyText(text)) {
+      hideReveal();
+      b.textContent = '已复制 ✓';
+      b.classList.add('copied');
+      setTimeout(() => { b.textContent = label; b.classList.remove('copied'); }, 1500);
+    } else {
+      revealText(text);
+      b.textContent = '复制失败 · 已展开供手动选择';
+      setTimeout(() => { b.textContent = label; b.classList.remove('copied'); }, 2000);
+    }
+  } catch (err) { fatal(err); }
+}
+
+/* ═══════════ 事件总线 ═══════════
+   原来所有交互只挂一层 document 委托。那是单点：宿主 WebView 吞掉冒泡、有脚本在
+   document 上拦一道、或者初始化在注册之前就断了，委托就整层失效——而界面照样完整，
+   因为渲染是 paint() 干的，跟事件无关。于是正好是「页面好好的，一个都按不动」。
+
+   现在不押单点：每个可交互元素直接绑一次，document 冒泡与 window 捕获各再兜一层。
+   三条通道拿到的是同一个事件对象，靠上面的标记保证一次点击只被处理一次。 */
+function closestOf(target, sel) {
+  let n = target, guard = 0;
+  while (n && guard++ < 12) {
+    if (n.nodeType === 1) {
+      if (typeof n.closest === 'function') { try { return n.closest(sel); } catch (e) {} }
+      if (typeof n.matches === 'function' && n.matches(sel)) return n;
+    }
+    n = n.parentNode;
+  }
+  return null;
+}
+function handleClick(e) {
+  if (e.__thDone) return;
+  e.__thDone = true;
+  try {
+    const act = closestOf(e.target, '[data-action]');
+    if (act) return handleAction(act.dataset.action, act);
+    const cm = closestOf(e.target, '.common-chip');
+    if (cm) return toggleCommon(cm.dataset.common);
+    const pill = closestOf(e.target, '.pill');
+    if (pill) return togglePill(pill);
+    const chip = closestOf(e.target, '.chip');
+    if (chip) return toggleChip(chip);
+    const lab = closestOf(e.target, '.play-label');
+    if (lab) return toggleDesc(lab);
+    const lad = closestOf(e.target, '.ladder-row');
+    if (lad) return toggleLadder(lad);
+    const tc = closestOf(e.target, '.tone-chip');
+    if (tc) { state.tone = state.tone === tc.dataset.val ? '' : tc.dataset.val; return paint(); }
+    const sw = closestOf(e.target, '.switch');
+    if (sw) return toggleSwitch(sw);
+  } catch (err) { fatal(err); }
+}
+const CLICKABLE = '[data-action],.chip,.pill,.common-chip,.tone-chip,.switch,.ladder-row,.play-label';
+function bindInteractive(root) {
+  const scope = root || document;
+  let n = 0;
+  if (scope.querySelectorAll) {
+    const list = scope.querySelectorAll(CLICKABLE);
+    for (let i = 0; i < list.length; i++) {
+      const el = list[i];
+      if (el.__thBound) continue;
+      el.__thBound = true;
+      el.addEventListener('click', handleClick);
+      n++;
+    }
+  }
+  if (scope.nodeType === 1 && !scope.__thBound && typeof scope.matches === 'function' && scope.matches(CLICKABLE)) {
+    scope.__thBound = true;
+    scope.addEventListener('click', handleClick);
+    n++;
+  }
+  return n;
+}
+/* 两条兜底通道在脚本刚跑到这里时就挂上，哪怕后面的初始化炸了也还在。 */
+document.addEventListener('click', handleClick);
+window.addEventListener('click', handleClick, true);
+
+document.addEventListener('keydown', e => {
+  try {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); return copyOutput($('copy-btn')); }
+    if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); return setAllOpen(true); }
+    const lad = e.target.closest && e.target.closest('.ladder-row');
+    if (lad && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      e.preventDefault();
+      const rows = Array.prototype.slice.call(e.target.closest('.obj-ladder').querySelectorAll('.ladder-row'));
+      const i = rows.indexOf(lad);
+      rows[(i + (e.key === 'ArrowDown' ? 1 : rows.length - 1)) % rows.length].focus();
+      return;
+    }
+    const pill = e.target.closest && e.target.closest('.pill');
+    if (pill) {
+      const items = Array.prototype.slice.call(pill.parentElement.querySelectorAll('.pill'));
+      const i = items.indexOf(pill);
+      let ni = null;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') ni = (i + 1) % items.length;
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') ni = (i - 1 + items.length) % items.length;
+      else if (e.key === 'Home') ni = 0;
+      else if (e.key === 'End') ni = items.length - 1;
+      if (ni !== null) { e.preventDefault(); items.forEach((el, j) => { el.tabIndex = j === ni ? 0 : -1; }); items[ni].focus(); }
+      return;
+    }
+    const t = e.target.closest && e.target.closest('.chip, .tone-chip, .switch, .play-label, .ladder-row, .common-chip');
+    if (t && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); t.click(); }
+  } catch (err) { fatal(err); }
+});
+
+let inputQueued = false;
+const onFormInput = e => {
+  if (!e.target.matches('input, select, textarea')) return;
+  try {
+    sync();
+    if (inputQueued) return;
+    inputQueued = true;
+    requestAnimationFrame(() => { inputQueued = false; paint(); });
+  } catch (err) { fatal(err); }
+};
+document.addEventListener('input', onFormInput);
+document.addEventListener('change', onFormInput);
+
+try {
+  buildStatic();
+  buildPlayList();
+  buildScenarios();
+  verifyBuild();
+  bindInteractive(document);
+
+  const restored = load();
+  if (!restored) {
+    state.theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    PLAYS.forEach(gp => gp.items.forEach(it => { state.open[it.en] = true; }));
+  }
+  hydrate();
+  paint();
+  if (!gateRemembered()) openGate();
+  window.TH.ready = true;
+} catch (err) {
+  // 初始化断在半路时，静态 HTML 里的按钮（18R 门、夜间、输出、清空）必须还能点，
+  // 否则用户会以为整个文件坏了，连那道门都出不去。
+  try { bindInteractive(document); } catch (e) {}
+  fatal(err);
+}
 </script>
 </body>
 </html>
