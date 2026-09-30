@@ -419,6 +419,56 @@
     <div class="count-note" id="play-count"></div>
     <a class="to-output" href="#sec-output">↓ 跳到输出 Output</a>
   </section>
+
+  <section id="sec-obj">
+    <h2>Objectification <span class="cn">· 物化（独立）</span></h2>
+    <div class="notice">
+      <strong>物化不是强度，是视角框架。</strong>四档只管"做多重"；这一栏管的是"对方在你眼里还算不算人"。没有轻/中/重，只有开不开，以及关掉之后剩下的是什么。必须单独勾选。
+    </div>
+    <div class="obj-head">
+      <span class="switch" id="obj-switch" role="switch" aria-checked="false" aria-label="开启物化视角" tabindex="0"></span>
+      <div class="obj-title">启用物化视角 <span class="cn">· Treat them as not-a-person</span></div>
+    </div>
+    <div class="obj-body" id="obj-body" hidden>
+      <p class="inline-note" style="margin-top:0">Rung <span style="font-family:var(--serif-cn)">· 层级</span>（单选，越往下越彻底）</p>
+      <div class="obj-ladder" id="obj-ladder" role="radiogroup" aria-label="物化层级"></div>
+      <p class="inline-note" style="margin-top:.9rem">Modifiers <span style="font-family:var(--serif-cn)">· 附加规则</span>（可多选）</p>
+      <div class="obj-flags chips" id="obj-flags" data-group="objFlags" data-multi="true" role="group" aria-label="物化附加规则"></div>
+      <div class="field" style="margin-top:.9rem">
+        <label>Notes <span style="font-family:var(--serif-cn)">· 物化细节</span></label>
+        <textarea class="obj-note" id="obj-note" placeholder="例：编号 07；不使用时靠墙右侧；坏了不修直接换。"></textarea>
+      </div>
+      <p class="inline-note" style="margin-bottom:0">物化框架不解除安全约束：安全词照常生效，模型永远不能代写您的反应。</p>
+    </div>
+  </section>
+
+  <section id="sec-after">
+    <h2>Aftercare <span class="cn">· 事后照料（独立）</span></h2>
+    <div class="notice">
+      <strong>事后照料不是一个玩法，是一份承诺。</strong>它没有力度档位，只有"做到什么程度"。它也不该和扇耳光躺在同一个列表里被顺手勾掉——所以单独列在这里，单独开关。开重档玩法或物化视角而不开这一栏，会被拦下。
+    </div>
+    <div class="obj-head">
+      <span class="switch" id="ac-switch" role="switch" aria-checked="false" aria-label="启用事后照料" tabindex="0"></span>
+      <div class="obj-title">启用事后照料 <span class="cn">· What B does afterwards</span></div>
+    </div>
+    <div class="obj-body" id="ac-body" hidden>
+      <p class="inline-note" style="margin-top:0">Depth <span style="font-family:var(--serif-cn)">· 程度（单选）</span></p>
+      <div class="obj-ladder" id="ac-ladder" role="radiogroup" aria-label="事后照料程度"></div>
+      <p class="inline-note" style="margin-top:.9rem">Include <span style="font-family:var(--serif-cn)">· 具体做什么（可多选）</span></p>
+      <div class="chips sm" data-group="acParts" data-multi="true" role="group" aria-label="事后照料内容"></div>
+      <div class="mini-grid" style="margin-top:.8rem">
+        <div class="field">
+          <label>Timing <span style="font-family:var(--serif-cn)">· 时点</span></label>
+          <select id="ac-timing"></select>
+        </div>
+        <div class="field">
+          <label>Note <span style="font-family:var(--serif-cn)">· 补充</span></label>
+          <input type="text" class="st-text" id="ac-note" placeholder="例：结束后要先把被子盖好再说话" style="font-size:.88rem">
+        </div>
+      </div>
+      <p class="inline-note" style="margin-bottom:0">不写"愧疚"也不写"教学"；不把它当奖励，也不允许角色拿它当借口跳过。角色可以冷淡、可以别扭，但事情要做。</p>
+    </div>
+  </section>
 <!--PART2-->
 </div>
 
