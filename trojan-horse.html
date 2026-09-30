@@ -1583,6 +1583,215 @@ function buildScenarios() {
     });
   });
 }
+
+function buildStatic() {
+  buildCharCards();
+  buildCommon();
+  fillChips('posYou', 'posYou', POSITIONS);
+  fillChips('posThem', 'posThem', POSITIONS);
+  fillChips('titlesYou', 'titlesYou', TITLES);
+  fillChips('titlesThem', 'titlesThem', TITLES);
+  fillChips('pnArch', 'pnArch', ARCHETYPES.map(a => [a[0], a[1]]));
+  fillChips('pnVoice', 'pnVoice', VOICES.map(a => [a[0], a[1]]));
+  fillChips('pnInit', 'pnInit', INITIATIVES.map(a => [a[0], a[1]]));
+  fillChips('pnCont', 'pnCont', CONTINUITY.map(a => [a[0], a[1]]));
+  $('pn-warmth').innerHTML = opts(WARMTH);
+  $('pn-energy').innerHTML = opts(ENERGY);
+  $('pn-pace').innerHTML = opts(PACE);
+
+  $('obj-ladder').innerHTML = ladderHtml('obj', OBJ_RUNGS);
+  OBJ_FLAGS.forEach(f => {
+    $('obj-flags').insertAdjacentHTML('beforeend',
+      `<span class="chip axis-flag" role="button" tabindex="0" aria-pressed="false" data-group="objFlags" data-val="${f.key}" title="${f.d}">${f.cn}</span>`);
+  });
+
+  $('ac-ladder').innerHTML = ladderHtml('after', AFTER_MODES);
+  fillChips('acParts', 'acParts', AFTER_PARTS.map(p => [p[0], p[1]]));
+  $('ac-timing').innerHTML = opts(AFTER_TIMING);
+
+  fillChips('stSenses', 'stSenses', ST_SENSES.map(s => [s[0], s[1]]));
+  fillChips('stTags', 'stTags', ST_TAGS.map(s => [s[0], s[1]]));
+  fillChips('stTalk', 'stTalk', ST_TALK.map(s => [s[0], s[1]]));
+  fillChips('stScope', 'stScope', ST_SCOPE.map(s => [s[0], s[1]]));
+  fillChips('stStages', 'stStages', ST_STAGES.map(s => [s[0], s[1]]));
+  fillChips('stLint', 'stLint', ST_LINT.map(s => [s[0], s[1]]));
+  $('st-min').innerHTML = opts([['2', '2 种'], ['3', '3 种'], ['4', '4 种'], ['5', '5 种']]);
+  $('st-person').innerHTML = opts(ST_PERSON);
+  $('st-length').innerHTML = opts(ST_LENGTH);
+
+  TONES.forEach(([v, l]) => {
+    $('tone-options').insertAdjacentHTML('beforeend',
+      `<span class="tone-chip" role="button" tabindex="0" aria-pressed="false" data-val="${v}">${l}</span>`);
+  });
+  $('import-file').addEventListener('change', onImportFile);
+}
+
+function onImportFile(e) {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try { applyState(JSON.parse(String(r.result))); hydrate(); paint(); alert('配置已导入。'); }
+    catch (err) { alert('导入失败：' + (err.message || err)); }
+  };
+  r.readAsText(f);
+  e.target.value = '';
+}
+
+function gateRemembered() { try { return localStorage.getItem(GATE_KEY) === 'ok'; } catch (e) { return false; } }
+function openGate() {
+  $('app').hidden = false; $('gone').hidden = true;
+  const g = $('gate');
+  g.hidden = false; g.scrollTop = 0; g.dataset.seen = '1';
+  $('gate-remember').checked = gateRemembered();
+  document.body.classList.add('gate-locked');
+  const target = $('gate-wrap') || $('gate-enter');
+  try { target.focus({ preventScroll: true }); } catch (e) { try { target.focus(); } catch (e2) {} }
+  g.scrollTop = 0;
+  g.classList.remove('gate-in');
+  requestAnimationFrame(() => requestAnimationFrame(() => g.classList.add('gate-in')));
+}
+function closeGate(remember) {
+  try { if (remember) localStorage.setItem(GATE_KEY, 'ok'); else localStorage.removeItem(GATE_KEY); } catch (e) {}
+  $('gate').hidden = true;
+  document.body.classList.remove('gate-locked');
+}
+function leaveApp() { closeGate(false); $('app').hidden = true; $('gone').hidden = false; }
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Tab') return;
+  const gate = document.getElementById('gate');
+  if (!gate || gate.hidden) return;
+  const f = gate.querySelectorAll('button, input, [href], [tabindex]:not([tabindex="-1"])');
+  if (!f.length) return;
+  const first = f[0], last = f[f.length - 1];
+  if (!gate.contains(document.activeElement)) { e.preventDefault(); first.focus(); return; }
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+}, true);
+
+function toggleCommon(en) {
+  if (state.plays[en]) delete state.plays[en];
+  else { const def = COMMON.find(c => c.en === en); state.plays[en] = def ? def.lv : 'medium'; }
+  if (state.playsMode !== 'pick') state.playsMode = 'pick';
+  paint();
+}
+
+function toggleChip(chip) {
+  const g = chip.dataset.group, val = chip.dataset.val;
+  if (BOOL_GROUPS[g]) { state.style[BOOL_GROUPS[g]] = !state.style[BOOL_GROUPS[g]]; return paint(); }
+  const strg = STRING_GROUPS[g];
+  if (strg) {
+    const cur = strg.get();
+    if (STICKY_RADIO.has(g) && cur === val) return;
+    strg.set(cur === val ? '' : val);
+    return paint();
+  }
+  const getArr = ARRAY_GROUPS[g];
+  if (!getArr) throw new Error('未知的 chip 组：' + g);
+  const arr = getArr();
+  const i = arr.indexOf(val);
+  if (i >= 0) { arr.splice(i, 1); return paint(); }
+  if (g === 'titlesYou' || g === 'titlesThem') {
+    if (val === '无称谓 No title') { arr.length = 0; arr.push(val); return paint(); }
+    const axis = chip.dataset.axis;
+    for (let k = arr.length - 1; k >= 0; k--) {
+      const t = TITLES.find(x => x.en === arr[k]);
+      if (t && t.axis === axis) arr.splice(k, 1);
+    }
+    arr.push(val);
+    return paint();
+  }
+  if (g === 'acParts') { arr.push(val); return paint(); }
+  const isGType = g === 'gTypesYou' || g === 'gTypesThem';
+  if (isGType && val === 'none') { arr.length = 0; arr.push('none'); }
+  else {
+    if (isGType) { const n = arr.indexOf('none'); if (n >= 0) arr.splice(n, 1); }
+    arr.push(val);
+  }
+  paint();
+}
+
+function toggleLadder(row) {
+  const which = row.dataset.ladder;
+  const setter = which === 'after' ? STRING_GROUPS.acMode : STRING_GROUPS.objRung;
+  setter.set(setter.get() === row.dataset.val ? '' : row.dataset.val);
+  paint();
+}
+
+function togglePill(pill) {
+  const play = pill.dataset.play, level = pill.dataset.level;
+  if (state.plays[play] === level) delete state.plays[play];
+  else state.plays[play] = level;
+  paint();
+}
+function toggleDesc(label) {
+  const key = label.closest('.play-item').dataset.play;
+  state.open[key] = !state.open[key];
+  paint();
+}
+function toggleSwitch(sw) {
+  if (sw.id === 'obj-switch') { state.obj.on = !state.obj.on; return paint(); }
+  if (sw.id === 'ac-switch') { state.after.on = !state.after.on; return paint(); }
+  if (sw.id === 'st-switch') { state.style.on = !state.style.on; return paint(); }
+  const key = sw.closest('.scenario').dataset.key;
+  const cur = state.scenarios[key];
+  // 关掉开关 ≠ 扔掉写好的成立条件。呼吸控制、非人认知这类文本是全文最不该
+  // 被一次误触清空的东西，所以这里只翻 on，note 一律留着。
+  if (!cur) state.scenarios[key] = { on: true, note: '' };
+  else cur.on = !cur.on;
+  paint();
+}
+function setAllOpen(v) {
+  document.querySelectorAll('.pg').forEach(d => { d.open = v; });
+  PLAYS.forEach(g => g.items.forEach(it => { state.open[it.en] = v; }));
+  paint();
+}
+
+async function handleAction(a, el) {
+  // async 函数里的同步异常，外层 click handler 的 try/catch 抓不到——会被转成
+  // rejected promise。所以必须在这里自己接住，否则按钮会「按不动且毫无提示」。
+  try {
+    if (a === 'theme') { state.theme = state.theme === 'dark' ? 'light' : 'dark'; return paint(); }
+    if (a === 'lang') { state.lang = state.lang === 'cn' ? 'en' : 'cn'; return paint(); }
+    if (a === 'diag') return runDiag();
+    if (a === 'mode') { state.mode = el.dataset.val; return paint(); }
+    if (a === 'playsMode') { state.playsMode = el.dataset.val; return paint(); }
+    if (a === 'commonAll') { COMMON.forEach(c => { if (!state.plays[c.en]) state.plays[c.en] = c.lv; }); state.playsMode = 'pick'; return paint(); }
+    if (a === 'commonNone') { COMMON.forEach(c => { delete state.plays[c.en]; }); return paint(); }
+    if (a === 'clearPlays') { state.plays = {}; return paint(); }
+    if (a === 'expandAll') return setAllOpen(true);
+    if (a === 'collapseAll') return setAllOpen(false);
+    if (a === 'exportFile') return exportFile();
+    if (a === 'importFile') return $('import-file').click();
+    if (a === 'copyJson') {
+      const json = JSON.stringify(state, null, 2);
+      if (await copyText(json)) { hideReveal(); toast('配置已复制到剪贴板'); }
+      else revealText(json);
+      return;
+    }
+    if (a === 'copy') return await copyOutput(el);
+    if (a === 'reset') { if (confirm('清空所有已填参数？此操作不可撤销。')) { resetState(); hydrate(); paint(); } return; }
+    if (a === 'prefill') return prefill();
+    if (a === 'gate-enter') return closeGate($('gate-remember').checked);
+    if (a === 'gate-exit') return leaveApp();
+    if (a === 'gate-open') return openGate();
+  } catch (err) { fatal(err); }
+}
+
+let toastTimer = null;
+function toast(msg) {
+  let t = $('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;left:50%;bottom:2rem;transform:translateX(-50%);z-index:1000;background:var(--fg);color:var(--bg);padding:.6rem 1.1rem;border-radius:2px;font-size:.82rem;max-width:90vw;text-align:center;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.style.display = 'none'; }, 2000);
+}
 <!--PART3-->
 </script>
 </body>
