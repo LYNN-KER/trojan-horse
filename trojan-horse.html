@@ -1884,6 +1884,163 @@ function prefill() {
   state.safety = { safeword: '熄灯 / Lights out', aftercare: 'required', limits: '不涉及面部核心；不拆卸对方接缝；痕迹不超过 24 小时。' };
   hydrate(); paint();
 }
+
+const GEN_FIELDS = new Set(['plen', 'pgirth', 'pstate', 'pdesc', 'vdepth', 'vaperture', 'vdesc']);
+const PERSONA_TEXT = [['pn-name', 'name'], ['pn-attitude', 'attitude'], ['pn-habit', 'habit'], ['pn-weak', 'weak']];
+const STYLE_TEXT = [['st-vocab', 'vocab'], ['st-banned', 'banned'], ['st-sounds', 'sounds'], ['st-pronoun', 'pronoun']];
+
+function sync() {
+  document.querySelectorAll('[data-char]').forEach(card => {
+    const key = card.dataset.char;
+    card.querySelectorAll('[data-f]').forEach(el => {
+      const v = el.value.trim();
+      if (GEN_FIELDS.has(el.dataset.f)) state[key].gen[el.dataset.f] = v;
+      else state[key][el.dataset.f] = v;
+    });
+  });
+  state.persona.warmth = $('pn-warmth').value;
+  state.persona.energy = $('pn-energy').value;
+  state.persona.pace = $('pn-pace').value;
+  PERSONA_TEXT.forEach(([id, k]) => { state.persona[k] = $(id).value.trim(); });
+  state.style.minSenses = $('st-min').value;
+  state.style.person = $('st-person').value;
+  state.style.length = $('st-length').value;
+  STYLE_TEXT.forEach(([id, k]) => { state.style[k] = $(id).value.trim(); });
+  state.obj.note = $('obj-note').value.trim();
+  state.after.timing = $('ac-timing').value;
+  state.after.note = $('ac-note').value.trim();
+  state.safety.safeword = $('safeword').value.trim();
+  state.safety.aftercare = $('aftercare').value;
+  state.safety.limits = $('limits').value.trim();
+  state.playsOnly = $('plays-only').checked;
+  document.querySelectorAll('.scenario').forEach(row => {
+    const k = row.dataset.key;
+    if (state.scenarios[k]) state.scenarios[k].note = row.querySelector('.scenario-note').value.trim();
+  });
+}
+
+function hydrate() {
+  document.querySelectorAll('[data-char]').forEach(card => {
+    const key = card.dataset.char;
+    const src = Object.assign({}, state[key], state[key].gen);
+    card.querySelectorAll('[data-f]').forEach(el => { el.value = src[el.dataset.f] || ''; });
+  });
+  $('pn-warmth').value = state.persona.warmth || '';
+  $('pn-energy').value = state.persona.energy || '';
+  $('pn-pace').value = state.persona.pace || '';
+  PERSONA_TEXT.forEach(([id, k]) => { $(id).value = state.persona[k] || ''; });
+  $('st-min').value = state.style.minSenses || '2';
+  $('st-person').value = state.style.person || 'second';
+  $('st-length').value = state.style.length || 'medium';
+  STYLE_TEXT.forEach(([id, k]) => { $(id).value = state.style[k] || ''; });
+  $('obj-note').value = state.obj.note || '';
+  $('ac-timing').value = state.after.timing || '';
+  $('ac-note').value = state.after.note || '';
+  $('safeword').value = state.safety.safeword || '';
+  $('aftercare').value = state.safety.aftercare || 'required';
+  $('limits').value = state.safety.limits || '';
+  $('plays-only').checked = !!state.playsOnly;
+  document.querySelectorAll('.scenario').forEach(row => {
+    const s = state.scenarios[row.dataset.key];
+    row.querySelector('.scenario-note').value = (s && s.note) || '';
+  });
+}
+
+const hasP = c => { const t = c.gen.types; return t.includes('penile') || t.includes('intersex') || t.includes('multiple'); };
+const hasV = c => { const t = c.gen.types; return t.includes('vaginal') || t.includes('intersex') || t.includes('multiple'); };
+const isNH = c => c.species === 'nonhuman';
+const labelOf = (list, v, ns) => {
+  const f = list.find(x => x[0] === v);
+  if (!f) return v;
+  const bi = splitBi(f[1]);
+  if (state.lang === 'cn') return bi.cn;
+  return (ns && EN_FOR[ns] && EN_FOR[ns][v]) || bi.en;
+};
+/* 表内描述（原型、语气、约定、感官……）在中文下直出，英文下查 DESC_EN */
+const descOf = (ns, k, table) => {
+  const f = table.find(x => x[0] === k);
+  if (!f) return '';
+  if (state.lang === 'cn') return f[2];
+  return (DESC_EN[ns] && DESC_EN[ns][k]) || f[2];
+};
+/* 「所有者 / 所有物」是唯一一条纯中文的称谓，splitBi 拆不出英文，单独补 */
+const TITLE_EN = { '所有者 / 所有物': 'Property / Possession' };
+const titleText = s => (state.lang === 'cn' ? s : (TITLE_EN[s] || pick(s)));
+const titlesOf = l => canon('titles', l).map(titleText).join(state.lang === 'cn' ? '、' : ', ');
+const hasAny = (l, set) => l.some(v => set.includes(v));
+const archOf = k => ARCHETYPES.find(a => a[0] === k);
+const voiceOf = k => VOICES.find(a => a[0] === k);
+const initOf = k => INITIATIVES.find(a => a[0] === k);
+const contOf = k => CONTINUITY.find(a => a[0] === k);
+const tagOf = k => ST_TAGS.find(t => t[0] === k);
+const talkOf = k => ST_TALK.find(t => t[0] === k);
+const stageOf = k => ST_STAGES.find(t => t[0] === k);
+const scopeOf = k => ST_SCOPE.find(t => t[0] === k);
+const senseOf = k => ST_SENSES.find(t => t[0] === k);
+const lintOf = k => ST_LINT.find(t => t[0] === k);
+const acModeOf = k => AFTER_MODES.find(m => m.key === k);
+const bannedList = () => state.style.banned.split(/[,，、]/).map(s => s.trim()).filter(Boolean);
+
+function lintBanned() {
+  const banned = bannedList();
+  if (!banned.length) return [];
+  const targets = [
+    ['硬性边界', state.safety.limits], ['物化细节', state.obj.note], ['事后照料·补充', state.after.note],
+    ['性格·默认态度', state.persona.attitude], ['性格·惯性动作', state.persona.habit],
+    ['性格·弱点', state.persona.weak],
+    ['您的阴茎外观', state.you.gen.pdesc], ['您的阴道外观', state.you.gen.vdesc],
+    ['模型阴茎外观', state.them.gen.pdesc], ['模型阴道外观', state.them.gen.vdesc],
+    ['模型其他特征', state.them.extra],
+  ];
+  SCENARIOS.forEach(s => { const v = state.scenarios[s.key]; if (v && v.on) targets.push(['场景 ' + s.cn, v.note]); });
+  const hits = [];
+  targets.forEach(([who, txt]) => {
+    if (!txt) return;
+    banned.forEach(w => { if (txt.includes(w)) hits.push(w + '（' + who + '）'); });
+  });
+  return hits.filter(function (v, i, a) { return a.indexOf(v) === i; });
+}
+
+function verifyBuild() {
+  const containerGroups = ['posYou', 'posThem', 'titlesYou', 'titlesThem',
+    'pnArch', 'pnVoice', 'pnInit', 'pnCont', 'acParts',
+    'gTypesYou', 'gTypesThem', 'pformYou', 'pformThem',
+    'vtraitsYou', 'vtraitsThem', 'orificesYou', 'orificesThem', 'objFlags',
+    'stSenses', 'stTags', 'stTalk', 'stScope', 'stStages', 'stLint'];
+  const empty = containerGroups.filter(g => {
+    const box = document.querySelector(`[data-group="${g}"]`);
+    return !box || box.querySelectorAll('.chip').length === 0;
+  });
+  if (empty.length) throw new Error('以下选项组渲染为空：' + empty.join(', '));
+
+  if (document.querySelectorAll('#char-grid [data-char]').length !== 2) throw new Error('角色卡渲染不全');
+  if (document.querySelectorAll('#common-list .common-chip').length !== COMMON.length) throw new Error('常用十项渲染不全');
+  if (document.querySelectorAll('#obj-ladder .ladder-row').length !== OBJ_RUNGS.length) throw new Error('物化阶梯渲染不全');
+  if (document.querySelectorAll('#ac-ladder .ladder-row').length !== AFTER_MODES.length) throw new Error('事后照料阶梯渲染不全');
+  const total = PLAYS.reduce((n, g) => n + g.items.length, 0);
+  const plays = document.querySelectorAll('#play-list .play-item').length;
+  if (plays !== total) throw new Error(`玩法项渲染不全：${plays}/${total}`);
+  if (document.querySelectorAll('#play-list details.pg').length !== PLAYS.length) throw new Error('玩法分组渲染不全');
+  const scen = document.querySelectorAll('#scenario-list .scenario').length;
+  if (scen !== SCENARIOS.length) throw new Error(`场景渲染不全：${scen}/${SCENARIOS.length}`);
+  const tones = document.querySelectorAll('#tone-options .tone-chip').length;
+  if (tones !== TONES.length) throw new Error(`语气渲染不全：${tones}/${TONES.length}`);
+  for (const c of CHARS) {
+    for (const f of ['species', 'gender', 'h', 'w', 'build', 'pstate', 'material', 'tail', 'pdesc', 'vdesc', 'extra']) {
+      if (document.querySelector(`[data-char="${c.key}"] [data-f="${f}"]`) === null) throw new Error(`${c.en} 缺少字段 ${f}`);
+    }
+  }
+  for (const id of ['pn-name', 'pn-attitude', 'pn-habit', 'pn-weak', 'pn-warmth', 'pn-energy', 'pn-pace',
+    'common-list', 'play-pick', 'play-list', 'play-count', 'plays-only',
+    'obj-note', 'obj-switch', 'obj-ladder', 'obj-body',
+    'ac-switch', 'ac-body', 'ac-ladder', 'ac-timing', 'ac-note',
+    'st-switch', 'st-body', 'st-vocab', 'st-banned', 'st-sounds', 'st-min', 'st-person', 'st-length', 'st-pronoun',
+    'safeword', 'aftercare', 'limits',
+    'output', 'copy-btn', 'import-file', 'share-out', 'share-cap', 'lang-btn',
+    'gate-wrap', 'gate-enter', 'gate-remember']) {
+    if (!document.getElementById(id)) throw new Error('缺少元素 #' + id);
+  }
+}
 <!--PART3-->
 </script>
 </body>
