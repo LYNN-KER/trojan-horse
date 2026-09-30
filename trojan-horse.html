@@ -299,6 +299,126 @@
   </header>
 
   <div class="fatal" id="fatal" hidden></div>
+
+  <section id="sec-persona">
+    <h2>Persona <span class="cn">· 性格（模型角色）</span></h2>
+    <div class="notice">
+      <strong>性格是最容易漏掉、也最容易每轮重猜的一层。</strong>这一栏把它固定下来：原型决定它是谁，语气决定它怎么说话，主动性决定谁先动，弱点决定它能被什么击穿。
+    </div>
+    <div class="body-grid">
+      <div class="body-card">
+        <div class="field">
+          <label>Name <span style="font-family:var(--serif-cn)">· 名字</span></label>
+          <input type="text" id="pn-name" placeholder="留空则不设定，模型自行取名">
+        </div>
+        <div class="field">
+          <label>Archetype <span style="font-family:var(--serif-cn)">· 原型（单选）</span></label>
+          <div class="chips sm" data-group="pnArch" data-multi="false" role="group" aria-label="性格原型"></div>
+        </div>
+        <div class="field">
+          <label>Initiative <span style="font-family:var(--serif-cn)">· 主动性（单选）</span></label>
+          <div class="chips sm" data-group="pnInit" data-multi="false" role="group" aria-label="主动性"></div>
+        </div>
+        <div class="field">
+          <label>Continuity <span style="font-family:var(--serif-cn)">· 跨轮记忆（单选）</span></label>
+          <div class="chips sm" data-group="pnCont" data-multi="false" role="group" aria-label="跨轮一致性"></div>
+        </div>
+      </div>
+      <div class="body-card">
+        <div class="field">
+          <label>Voice <span style="font-family:var(--serif-cn)">· 说话方式（可多选）</span></label>
+          <div class="chips sm" data-group="pnVoice" data-multi="true" role="group" aria-label="说话方式"></div>
+        </div>
+        <div class="mini-grid">
+          <div class="field">
+            <label>Warmth <span style="font-family:var(--serif-cn)">· 温度</span></label>
+            <select id="pn-warmth"></select>
+          </div>
+          <div class="field">
+            <label>Energy <span style="font-family:var(--serif-cn)">· 能量</span></label>
+            <select id="pn-energy"></select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Pace <span style="font-family:var(--serif-cn)">· 语速</span></label>
+          <select id="pn-pace"></select>
+        </div>
+      </div>
+    </div>
+    <div class="field" style="margin-top:1rem">
+      <label>Attitude <span style="font-family:var(--serif-cn)">· 对您的默认态度</span></label>
+      <textarea id="pn-attitude" placeholder="没有场景设定时，它默认怎么对您。例：一开始是公事公办，聊了两个月才漏出偏心。"></textarea>
+    </div>
+    <div class="field">
+      <label>Standing habit <span style="font-family:var(--serif-cn)">· 惯性动作／口头禅</span></label>
+      <textarea id="pn-habit" placeholder="例：每次说完重要的话会停两秒；左手无名指有旧伤，动作会绕开它。"></textarea>
+    </div>
+    <div class="field">
+      <label>Weakness <span style="font-family:var(--serif-cn)">· 弱点（被什么击穿）</span></label>
+      <textarea id="pn-weak" placeholder="例：怕被丢下；被夸奖时会失语；听见真名会僵住。"></textarea>
+    </div>
+  </section>
+
+  <section id="sec-char">
+    <h2>Characters <span class="cn">· 角色</span></h2>
+    <p class="hint">两侧都是完整角色，各自独立配置身体、生殖结构与人外特征。模型不会代写您的行为与台词，但需要知道您身上是什么，互动才写得成立。</p>
+    <div class="body-grid" id="char-grid"></div>
+    <div class="size-diff" id="size-diff">填写两侧身高以查看体型差。</div>
+  </section>
+
+  <section id="sec-role">
+    <h2>Dynamic <span class="cn">· 关系动态</span></h2>
+    <div class="pref-group">
+      <h3>Your position <span class="cn">· 您的定位</span></h3>
+      <div class="chips" data-group="posYou" data-multi="false" role="group" aria-label="您的定位"></div>
+    </div>
+    <div class="pref-group">
+      <h3>Their position <span class="cn">· 对方的定位</span></h3>
+      <div class="chips" data-group="posThem" data-multi="false" role="group" aria-label="对方定位"></div>
+    </div>
+    <div class="pref-group">
+      <h3>How they call you <span class="cn">· 对方如何称呼您</span></h3>
+      <div class="chips sm" data-group="titlesYou" data-multi="true" role="group" aria-label="对方对您的称谓"></div>
+    </div>
+    <div class="pref-group">
+      <h3>How you call them <span class="cn">· 您如何称呼对方</span></h3>
+      <div class="chips sm" data-group="titlesThem" data-multi="true" role="group" aria-label="您对对方的称谓"></div>
+    </div>
+    <p class="hint">同一体系内互斥，不同体系可叠加。侮辱性称呼与物品化称呼带红框。<span style="font-family:var(--serif-cn)">同体系互斥，跨体系可叠加。</span></p>
+  </section>
+
+  <section id="sec-play">
+    <h2>Repertoire <span class="cn">· 玩法强度</span></h2>
+    <div class="notice">
+      <strong>不用每一项都挑。</strong>默认交给模型判断——它会依据性格、称谓和你已勾选的约定自己挑，并被明确禁止引入你没同意过的玩法。四档量的是力度，不是同意。
+    </div>
+    <div class="common-box">
+      <div class="common-head">
+        <span class="common-name">常用十项 <span class="n">· Common ten</span></span>
+        <span style="display:flex; gap:.4rem; flex-wrap:wrap">
+          <button class="btn pick" data-action="commonAll">全选 All</button>
+          <button class="btn pick" data-action="commonNone">清空 None</button>
+        </span>
+      </div>
+      <div class="common-list" id="common-list"></div>
+      <p class="inline-note" style="margin:.7rem 0 0">点一下按推荐强度选中，再点取消。选中后自动切到「逐项挑选」并写入 prompt；想改成别的强度，去下面逐项调。</p>
+    </div>
+    <div class="toolbar">
+      <button class="btn" data-action="playsMode" data-val="auto">交给模型 Auto</button>
+      <button class="btn" data-action="playsMode" data-val="pick">逐项挑选 Pick</button>
+    </div>
+    <div id="play-pick" hidden>
+      <div class="toolbar">
+        <button class="btn" data-action="expandAll">全部展开</button>
+        <button class="btn" data-action="collapseAll">全部收起</button>
+        <button class="btn pick" data-action="clearPlays">清空已选</button>
+        <label class="gate-check" style="margin:0; flex:1 1 140px"><input type="checkbox" id="plays-only"> <span>仅显示已选</span></label>
+      </div>
+      <div id="play-list"></div>
+    </div>
+    <div class="count-note" id="play-count"></div>
+    <a class="to-output" href="#sec-output">↓ 跳到输出 Output</a>
+  </section>
 <!--PART2-->
 </div>
 
