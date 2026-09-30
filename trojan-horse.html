@@ -577,7 +577,69 @@
       </div>
     </div>
   </section>
-<!--PART2-->
+
+  <section id="sec-scenario">
+    <h2>Agreements <span class="cn">· 约定与场景</span></h2>
+    <div class="notice">
+      <strong>⚠ 同意先于强度。</strong>分两类：<strong>前提约定</strong>是需要先谈定才能玩的东西（呼吸控制、合意强制、变形…）；<strong>场景开关</strong>是按需开启的玩法（体型差、公共场合、非人认知…）。两类都默认关闭，开启任一项必须填写成立条件。
+    </div>
+    <div id="scenario-list"></div>
+  </section>
+
+  <section id="sec-safety">
+    <h2>Safety <span class="cn">· 安全框架</span></h2>
+    <div class="body-grid">
+      <div class="body-card">
+        <div class="field">
+          <label>安全词 Safety word <span style="font-family:var(--serif-cn)">· 任何一方说出即刻终止</span></label>
+          <input type="text" id="safeword" placeholder="例如：熄灯 / Lights out">
+        </div>
+        <div class="field">
+          <label>事后是否必须收尾 <span style="font-family:var(--serif-cn)">· 收尾的强度下限</span></label>
+          <select id="aftercare">
+            <option value="required">必须，不许跳过</option>
+            <option value="offered">可以拒绝（但不推荐）</option>
+            <option value="off">不涉及</option>
+          </select>
+        </div>
+      </div>
+      <div class="body-card">
+        <div class="field" style="height:100%">
+          <label>硬性边界 Hard limits <span style="font-family:var(--serif-cn)">· 绝对不做的事</span></label>
+          <textarea id="limits" placeholder="逐条列出。例如：不做真掐；不涉及面部；痕迹不超过 24h。"></textarea>
+        </div>
+      </div>
+    </div>
+    <p class="hint" style="margin-top:.7rem">若上面「事后照料」栏已开启，以那一栏为准，本处只作为最低下限。</p>
+  </section>
+
+  <section id="sec-tone">
+    <h2>Voice <span class="cn">· 语气风格</span></h2>
+    <div class="chips" id="tone-options" role="group" aria-label="语气风格"></div>
+  </section>
+
+  <section id="sec-output">
+    <h2>Output <span class="cn">· 输出</span></h2>
+    <div class="toolbar">
+      <button class="btn" data-action="mode" data-val="full">完整版 Full</button>
+      <button class="btn" data-action="mode" data-val="compact">精简版 Compact</button>
+    </div>
+    <div class="toolbar">
+      <button class="btn" data-action="copy">复制 Prompt</button>
+      <button class="btn" data-action="exportFile">导出文件</button>
+      <button class="btn" data-action="importFile">导入文件</button>
+      <button class="btn" data-action="copyJson">复制配置</button>
+      <button class="btn" data-action="prefill">载入示例</button>
+      <button class="btn" data-action="reset">清空 Reset</button>
+    </div>
+    <input type="file" id="import-file" accept="application/json,.json" hidden>
+    <div class="issues" id="issues" role="status" aria-live="polite"></div>
+    <div class="output-box" id="output"></div>
+    <div class="budget"><span id="budget-len"></span><span id="budget-diff"></span></div>
+    <button class="copy-btn" id="copy-btn" data-action="copy">复制到剪贴板 Copy</button>
+    <p class="inline-note" id="share-cap" hidden>剪贴板不可用，内容已展开在下框中，请手动复制。</p>
+    <textarea class="share-out" id="share-out" rows="4" hidden readonly></textarea>
+  </section>
 </div>
 
 <div class="gone" id="gone" hidden><p>已离开。<span style="font-family:var(--serif-cn)">刷新页面可重新开始。</span></p></div>
