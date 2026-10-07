@@ -51,7 +51,7 @@
   .gate-box.alert h2 { color: var(--danger); }
   .gate-box p { font-size: .8rem; line-height: 1.7; margin-bottom: .5rem; }
   .gate-box p:last-child { margin-bottom: 0; }
-  .gate-box ul { margin: .1rem 0 0 1.05rem; font-size: .78rem; line-height: 1.7; color: var(--muted); };
+  .gate-box ul { margin: .1rem 0 0 1.05rem; font-size: .78rem; line-height: 1.7; color: var(--muted); }
   .gate-box li { margin-bottom: .15rem; }
   .gate-check { display: flex; align-items: center; gap: .5rem; font-size: .78rem; color: var(--muted); margin-bottom: .9rem; cursor: pointer; }
   .gate-check input { width: 14px; height: 14px; accent-color: var(--accent); flex: 0 0 auto; }
@@ -1157,39 +1157,6 @@ const AFTERCARE_FLOOR = {
 };
 const aftercareFloor = k => { const f = AFTERCARE_FLOOR[k] || AFTERCARE_FLOOR.required; return state.lang === 'cn' ? f.cn : f.en; };
 
-/* ═══════════ 语言层 ═══════════
-   这份 prompt 之前是「英文骨架 + 中文零件」拼起来的：词表整块中文，scope 的标签
-   是「调教与支配」，性器类型是「阴茎 Penile」——全文没有一句告诉模型正文该用哪种
-   语言，于是脏话用中文还是英文全靠它自己猜。这里把语言显式化成开关。
-
-   数据表里的标签大半是「English 中文」或「中文 English」两种拼法混着写的。与其把
-   两百多个值重抄一遍，不如生成时按汉字的位置拆开——规则很窄：汉字在哪一侧，另一侧
-   就是英文。纯中文的表走 EN_FOR 补英文，纯英文的表走 DESC_EN 补中文。 */
-const HAN = /[\u3400-\u9fff\uf900-\ufaff]/;
-const LATIN = /[A-Za-z]/;
-/* 只吃空白和分隔符，不吃括号——否则「多副（>1） Multiple sets」会被啃成
-   「多副（>1」，括号不配对。 */
-const TRIM_EDGE = /^[\s·、,\-—/]+|[\s·、,\-—/]+$/g;
-
-function splitBi(label) {
-  const s = label == null ? '' : String(label);
-  const m = s.match(HAN);
-  if (!m) return { cn: s, en: s };
-  const i = m.index;
-  const before = s.slice(0, i), after = s.slice(i);
-  if (LATIN.test(before)) return { en: before.replace(TRIM_EDGE, ''), cn: after.trim() };
-  const j = after.search(LATIN);
-  if (j >= 0) return { cn: after.slice(0, j).replace(TRIM_EDGE, ''), en: after.slice(j).replace(TRIM_EDGE, '') };
-  return { cn: s, en: s };
-}
-const pick = label => { const b = splitBi(label); return state.lang === 'cn' ? b.cn : b.en; };
-const LANG_NAME = { cn: '简体中文', en: 'English' };
-/* 框架句双语。含动态值的句子整句成对，纯说明句才允许留在英文侧。 */
-const B = (cn, en) => ({ cn: cn, en: en });
-const t = b => (state.lang === 'cn' ? b.cn : b.en);
-const H = (cn, en) => (state.lang === 'cn' ? '## ' + cn : '## ' + en);
-const joinWith = (arr, cnSep, enSep) => arr.join(state.lang === 'cn' ? cnSep : enSep);
-
 const EN_FOR = {
   build: { petite: 'Petite', slim: 'Slim', athletic: 'Athletic', average: 'Average', curvy: 'Curvy', broad: 'Broad', heavy: 'Heavy' },
   warmth: { cold: 'Cold', distant: 'Distant', neutral: 'Neutral', warm: 'Warm', burning: 'Burning' },
@@ -1370,4 +1337,37 @@ function resetState() {
   state.safety = { safeword: '', aftercare: 'required', limits: '' };
   state.theme = t; state.mode = m; state.playsMode = pm; state.lang = lg; state.playsOnly = false;
 }
-<!--PART13-->
+
+function exportFile() {
+  flushSave();
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  // 本地日期，不是 toISOString 的 UTC 日期 —— 晚上导出的人不想看到明天的文件名
+  const d = new Date();
+  const stamp = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  a.download = 'trojan-horse-' + stamp + '.json';
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+function revealText(text) {
+  $('share-cap').hidden = false;
+  const box = $('share-out');
+  box.hidden = false; box.value = text; box.select();
+}
+function hideReveal() { $('share-cap').hidden = true; $('share-out').hidden = true; }
+async function copyText(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); return true; }
+  } catch (e) { /* fallback */ }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+    document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, text.length);
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch (e) { return false; }
+}
+<!--PART14-->
