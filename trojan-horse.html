@@ -1,39 +1,39 @@
 
-/* 词表支持双语：每行「中文 | English」。中文正文取左半，英文正文取右半；
-   右半留空时保留左半并注明该组还没有英文写法，让模型自己找同等粗俗的说法。 */
-function vocabLines(raw) {
-  const cn = state.lang === 'cn';
-  return String(raw || '').split('\n').map(r => r.trim()).filter(Boolean).map(r => {
-    const i = r.indexOf('|');
-    const left = (i < 0 ? r : r.slice(0, i)).trim();
-    if (cn) return left;
-    const right = i < 0 ? '' : r.slice(i + 1).trim();
-    if (right) return right;
-    return left + ' [no English entry for this group — supply the equivalent coarse term instead]';
-  });
-}
-
-function styleLines() {
-  const s = state.style;
-  const L = [];
-  L.push(t(B('性不是情节上的装饰，它是情绪所能达到的最强烈形态。快感不来自漂亮的措辞，来自感官的密度。每一次触碰都有质地，每一滴液体都有温度和声音，每一寸皮肤都有反应。',
-    'Sex is not decoration on the plot; it is the highest form the emotion takes. Pleasure does not come from beautiful phrasing, it comes from sensory density. Every touch has texture, every drop of fluid has temperature and sound, every inch of skin reacts.')));
-
-  if (s.vocabLock) {
+  const senses = canon('senses', s.senses);
+  if (senses.length) {
     L.push('');
-    L.push(t(B('词汇锁定。器官就用器官的名字。只从与该角色实际解剖相符的分组里取用，不要因为对方的性别认同而增删任何一组。',
-      "Locked vocabulary. Name the organ with the organ's name. Choose only from the groups matching the anatomy this character actually has, and do not add or withhold a group because of the character's gender identity:")));
-    if (s.vocab) L.push(...vocabLines(s.vocab));
-    if (s.toneBond) L.push(t(B('这套词汇在任何调性下都保持粗俗。温柔的场面不会退回委婉说法——只有动作层跟随调性：温柔场重笔液体的黏稠与肉体的缓慢压缩；激烈场重笔击打的锐响与连续落下的节奏。',
-      'This vocabulary stays coarse in EVERY register. A gentle scene does not revert to euphemism — only the action layer follows the tone: tender scenes weight the viscosity of fluids and the slow compression of flesh; intense scenes weight the sharp impact and the rhythm of consecutive strikes.')));
-    const b = bannedList();
-    if (b.length) L.push(t(B(`以下词一律禁用，也不得用隐喻替换：${b.join('、')}。`,
-      `Banned outright, never substitute with metaphor or softening: ${b.join('、')}.`)));
+    L.push(t(B(`感官密度。每一段亲密描写至少同时覆盖以下 ${s.minSenses || '2'} 个通道：`,
+      `Sensory density. Every intimate passage must carry at least ${s.minSenses || '2'} of these channels, simultaneously:`)));
+    senses.forEach(k => {
+      const f = senseOf(k);
+      if (!f) return;
+      const lbl = pick(f[1]), d = descOf('sense', k, ST_SENSES);
+      L.push(t(B(`- ${lbl} — ${d}`, `- ${lbl} — ${d} (render as ${ST_SENSE_EN[k]})`)));
+    });
+    if (s.react) L.push(t(B('身体反应用颤抖、失语、痉挛、潮红、呼吸断裂表达。禁止尖叫、夸张的反弓、昏厥或失去意识——那读起来像虚构，不像一具身体。',
+      'Body response is expressed as trembling, speechlessness, spasm, flush and broken breath. Screaming, exaggerated arching, fainting or loss of consciousness are prohibited — they read as fiction rather than as a body.')));
   }
 
-  if (s.sound) {
+  const tags = canon('tags', s.tags);
+  if (tags.length) {
     L.push('');
-    L.push(t(B(`声音。全场不允许出现静音。拟声词写在动作句内部，绝不作为标注挂在句尾。可用：${s.sounds || ''}。呼吸中断、吞咽、皮肉相击都算声音。`,
-      `Sound. Silence is not permitted anywhere in the scene. Onomatopoeia goes inside the action sentence, never appended at the end as a label. Available: ${s.sounds || ''}. Break breathing, swallowing and skin-on-skin contact count as sound too.`)));
+    L.push(t(B('A 的固有质地。写进行为里。不得在正文中命名、标注或解释这些标签：',
+      'Standing qualities for A. Apply them as behaviour. Do not name them, label them, or explain them anywhere in the prose:')));
+    tags.forEach(k => { const f = tagOf(k); if (f) L.push('- ' + (state.lang === 'cn' ? (TAG_CN[k] || f[2]) : f[2])); });
   }
-<!--PART35-->
+
+  const talk = canon('talk', s.talk);
+  if (talk.length) {
+    L.push('');
+    L.push(t(B('脏话语域。与人设的口吻保持一致；以下语域可用：',
+      "Dirty talk register. Match the persona's idiolect; the following registers are available:")));
+    talk.forEach(k => {
+      const f = talkOf(k);
+      if (!f) return;
+      const lbl = pick(f[1]);
+      L.push(t(B(`- ${lbl}：${f[2]}`, `- ${lbl} — ${ST_TALK_EN[k]}`)));
+    });
+    L.push(t(B('这里的羞辱是放大快感的情趣语言，不是轻蔑。哭泣、失语与颤抖都是正向反馈。脏话与温柔可以在同一句里共存。',
+      'Humiliation here is erotic language in service of intensifying pleasure, not contempt. Crying, speechlessness and trembling are positive feedback. Dirty talk and tenderness may coexist in the same sentence.')));
+  }
+<!--PART36-->
