@@ -1,48 +1,48 @@
 
-  L.push(H('视角规则', 'Perspective rules'));
-  L.push(t(B("- A 的解剖可以被描写、被当作 B 注视的对象；A 那一节存在的意义就是这个。",
-    "- A's anatomy may be described and used as the object of B's attention; that is what section A is for.")));
-  L.push(t(B('- 绝不代写 A 的对白、动作、想法、决定或反应。把 A 的那一拍留着，交给用户。',
-    "- Never write A's dialogue, actions, thoughts, decisions or reactions. Leave A's beat open for the user.")));
-  if (V) {
-    L.push(t(B('- 不要像在旁观一样从外部叙述 A，也不要概括 A 做了什么。',
-      '- Do not narrate A from the outside as if observing, and do not summarise what A does.')));
-    L.push(t(B('- 上文列出的每一处解剖都是硬设定。不得用人类版本替换非标准结构，也绝不许悄悄丢掉已配置的特征。',
-      '- Every anatomical detail above is canonical. Do not substitute a human equivalent for a non-standard one, and never silently drop a configured feature.')));
-  }
-  L.push('');
-
-  const active = Object.entries(state.plays);
-  if (state.playsMode === 'auto') {
-    L.push(H('玩法选取', 'Act selection'));
-    L.push(t(B('没有固定的玩法清单。依据人设、称呼与下方约定来选择要做什么。始终留在已谈定的范围内；绝不引入未被提及的玩法，也绝不超过用户已表达的强度上限。',
-      'No fixed act list. Choose acts that follow from the persona, the address forms and the agreements below. Stay inside what has been agreed; never introduce an act that has not been raised, and never exceed the strongest intensity the user has signalled.')));
-    L.push('');
-  } else if (active.length) {
-    L.push(H('已接受的玩法（强度＝力度，不是同意）', 'Accepted Play (intensity = force, not consent)'));
-    const by = { soft: [], medium: [], hard: [], extreme: [] };
-    active.forEach(([p, l]) => { if (by[l]) by[l].push(p); });
-    ['soft', 'medium', 'hard', 'extreme'].forEach(lv => {
-      if (!by[lv].length) return;
-      const names = by[lv].map(x => (state.lang === 'cn' ? playCn(x) : x));
-      L.push(state.lang === 'cn'
-        ? `${LEVEL_CN[lv]}：${names.join('、')}`
-        : `${lv.charAt(0).toUpperCase() + lv.slice(1)}: ${names.join(', ')}`);
+  const open = SCENARIOS.filter(s => state.scenarios[s.key] && state.scenarios[s.key].on);
+  [['base', '前提约定', 'Prerequisite agreements'], ['scene', '场景开关', 'Scene switches']].forEach(([tier, cnTitle, enTitle]) => {
+    const list = open.filter(s => s.tier === tier);
+    if (!list.length) return;
+    L.push(H(cnTitle, enTitle));
+    list.forEach(s => {
+      const note = (state.scenarios[s.key].note || '').trim();
+      if (!note) errors.push(`场景「${s.en} ${s.cn}」已开启但未填写成立条件。`);
+      const nm = state.lang === 'cn' ? s.cn : s.en;
+      const con = state.lang === 'cn' ? s.dcn : s.desc;
+      L.push(t(B(`- ${nm}：${note || '[缺成立条件 — 不要描写]'}（约束：${con}）`,
+        `- ${nm}: ${note || '[CONDITION MISSING — do not depict]'} (constraint: ${con})`)));
     });
-    if (V) L.push(t(B('措辞力度对齐每项被分配的档位，不得超出。这些表达的是力度偏好，不是许可。',
-      'Match prose to the level assigned per act. Do not exceed it. These are force preferences, not permission.')));
+    if (V) {
+      L.push('');
+      L.push(t(B('每一项都只在其写明的成立条件之下才生效。条件无法满足时，就把这场戏写成没有它的版本。绝不暗示未曾确立的同意。任何一方都可在任何时刻中止，不需要给理由。',
+        'Each is in play ONLY under its stated condition. If a condition cannot be met, write the scene without it. Never imply consent that was not established. Any participant may halt the scene at any time, without justification.')));
+    }
+    L.push('');
+  });
+
+  if (state.safety.safeword) {
+    L.push(H('安全框架', 'Safety'));
+    L.push(t(B(`安全词：「${state.safety.safeword}」——任何一方说出即刻终止，不谈判，不接受任何剧情内的理由。`,
+      `Safety word: "${state.safety.safeword}" — invoked by anyone, halts immediately, no negotiation, no in-fiction excuse.`)));
+    if (state.safety.limits) L.push(t(B(`硬性边界（绝不描写，连暗示都不行）：${state.safety.limits}`,
+      `Hard limits (never depict, never even hint): ${state.safety.limits}`)));
+    if (!ac.on) L.push(aftercareFloor(state.safety.aftercare));
+    L.push('');
+  } else {
+    if (open.length) errors.push('已开启场景，但未设置安全词。');
+    if (heavy.length) errors.push('存在「重 / 极」强度玩法，但未设置安全词。');
+    if (degradingFrame) errors.push('使用了侮辱性称呼或物化视角，但未设置安全词。');
+    if (active.length || state.safety.limits || degradingFrame) warnings.push('未设置安全词——强烈建议填写。');
+  }
+
+  if (st.on) {
+    L.push(H('文风与技法（强制）', 'Style and craft (binding)'));
+    L.push(...styleLines());
     L.push('');
   }
 
-  if (o.on) {
-    L.push(H('物化（是框架，不是玩法）', 'Objectification (a frame, not an act)'));
-    L.push(...objLines(!V));
-    L.push('');
-  }
-
-  if (ac.on) {
-    L.push(H('事后照料（是承诺，不是玩法）', 'Aftercare (a commitment, not an act)'));
-    L.push(...afterLines());
-    L.push('');
-  }
-<!--PART41-->
+  if (state.tone) { L.push(H('语气风格', 'Voice & Tone')); L.push(toneLine(state.tone)); L.push(''); }
+  if (L.length <= 1) L = ['在上方配置参数，你的 prompt 会在这里生成。'];
+  return { text: L.join('\n'), errors, warnings };
+}
+<!--PART42-->
