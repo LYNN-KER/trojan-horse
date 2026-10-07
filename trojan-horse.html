@@ -1,82 +1,80 @@
 
-  <section id="sec-tone">
-    <h2>Voice <span class="cn">· 语气风格</span></h2>
-    <div class="chips" id="tone-options" role="group" aria-label="语气风格"></div>
-  </section>
+/* 选中态只走这一条路。 */
+function setCls(el, name, on) { if (!el) return; if (on) el.classList.add(name); else el.classList.remove(name); }
 
-  <section id="sec-output">
-    <h2>Output <span class="cn">· 输出</span></h2>
-    <div class="toolbar">
-      <button class="btn" data-action="mode" data-val="full">完整版 Full</button>
-      <button class="btn" data-action="mode" data-val="compact">精简版 Compact</button>
-    </div>
-    <div class="toolbar">
-      <button class="btn" data-action="copy">复制 Prompt</button>
-      <button class="btn" data-action="exportFile">导出文件</button>
-      <button class="btn" data-action="importFile">导入文件</button>
-      <button class="btn" data-action="copyJson">复制配置</button>
-      <button class="btn" data-action="prefill">载入示例</button>
-      <button class="btn" data-action="reset">清空 Reset</button>
-    </div>
-    <input type="file" id="import-file" accept="application/json,.json" hidden>
-    <div class="issues" id="issues" role="status" aria-live="polite"></div>
-    <div class="output-box" id="output"></div>
-    <div class="budget"><span id="budget-len"></span><span id="budget-diff"></span></div>
-    <button class="copy-btn" id="copy-btn" data-action="copy">复制到剪贴板 Copy</button>
-    <p class="inline-note" id="share-cap" hidden>剪贴板不可用，内容已展开在下框中，请手动复制。</p>
-    <textarea class="share-out" id="share-out" rows="4" hidden readonly></textarea>
-  </section>
-</div>
+/* 静态 HTML 上的按钮走内联 onclick，不依赖任何一层委托——那道门必须永远出得去。
+   函数声明会提升，所以这里可以安全地引用后面才定义的 openGate / closeGate。 */
+const TH = {
+  ready: false,
+  gateEnter: function () {
+    try { closeGate($('gate-remember') ? $('gate-remember').checked : false); }
+    catch (e) { try { $('gate').hidden = true; document.body.classList.remove('gate-locked'); } catch (e2) {} }
+  },
+  gateExit: function () { try { leaveApp(); } catch (e) {} },
+  open: function () { try { openGate(); } catch (e) {} },
+  diag: function () { try { runDiag(); } catch (e) { fatal(e); } }
+};
+window.TH = TH;
 
-<div class="gone" id="gone" hidden><p>已离开。<span style="font-family:var(--serif-cn)">刷新页面可重新开始。</span></p></div>
-
-<script>
-/* ═══════════ 兼容垫片 ═══════════
-   这份东西要能在老 WebView 里活下来。下面这几个缺口每一个都能让整页变哑，
-   而且症状全都是「渲染得好好的，控件却一个都按不动」：
-
-   1) classList.toggle(name, force) —— 旧实现直接忽略第二个参数，于是 paint 每次
-      都把选中态反转一次：点一下变过去，下一次重绘又变回来，看起来就是按不动，
-      甚至反着来。所以下面一律用 setCls() 走明确的两步。
-   2) NodeList.prototype.forEach —— 缺失时第一处 querySelectorAll().forEach 就抛。
-   3) Element.prototype.closest —— 缺失时事件委托里的 e.target.closest(...) 直接
-      TypeError，整层委托连同页面上的所有按钮一起死掉。
-   4) Object.assign / includes / padStart —— 缺失时初始化阶段就断。 */
-(function () {
-  var AP = Array.prototype, SP = String.prototype;
-  if (!Object.assign) Object.assign = function (t) {
-    for (var i = 1; i < arguments.length; i++) {
-      var s = arguments[i]; if (!s) continue;
-      for (var k in s) if (Object.prototype.hasOwnProperty.call(s, k)) t[k] = s[k];
+/* ═══════════ 崩溃可见化 ═══════════ */
+let fatalShown = false;
+function fatal(err) {
+  const box = document.getElementById('fatal');
+  if (!box) return;
+  const msg = (err && err.message) ? err.message : String(err);
+  const where = (err && err.stack) ? String(err.stack).split('\n').slice(1, 3).map(l => l.trim()).join('  |  ') : '';
+  if (window.console) console.error(err);
+  if (fatalShown) {
+    // 之后每一条新错误都要看得见。上一版在这里直接 return，导致点击时的
+    // 异常被静默吞掉，表现就是「按钮按不动，什么都不显示」。
+    let tail = document.getElementById('fatal-latest');
+    if (!tail) {
+      tail = document.createElement('div');
+      tail.id = 'fatal-latest';
+      tail.style.cssText = 'margin-top:.5rem;padding-top:.5rem;border-top:1px dashed currentColor;opacity:.9';
+      box.appendChild(tail);
     }
-    return t;
-  };
-  if (!AP.forEach) AP.forEach = function (f, a) { for (var i = 0; i < this.length; i++) f.call(a, this[i], i, this); };
-  if (!AP.includes) AP.includes = function (v, f) { return this.indexOf(v, f || 0) !== -1; };
-  if (!AP.find) AP.find = function (f, a) { for (var i = 0; i < this.length; i++) { if (f.call(a, this[i], i, this)) return this[i]; } };
-  if (!SP.includes) SP.includes = function (v) { return this.indexOf(v) !== -1; };
-  if (!SP.padStart) SP.padStart = function (n, c) {
-    c = c || ' '; var s = String(this); while (s.length < n) s = c + s; return s;
-  };
-  if (typeof NodeList !== 'undefined' && !NodeList.prototype.forEach) NodeList.prototype.forEach = AP.forEach;
-  if (typeof HTMLCollection !== 'undefined' && !HTMLCollection.prototype.forEach) HTMLCollection.prototype.forEach = AP.forEach;
-  if (typeof DOMTokenList !== 'undefined' && !DOMTokenList.prototype.forEach) DOMTokenList.prototype.forEach = AP.forEach;
-  if (typeof Element !== 'undefined') {
-    if (!Element.prototype.matches) {
-      var mm = Element.prototype.matchesSelector || Element.prototype.webkitMatchesSelector
-        || Element.prototype.msMatchesSelector || Element.prototype.mozMatchesSelector;
-      if (mm) Element.prototype.matches = function (s) { return mm.call(this, s); };
-    }
-    if (!Element.prototype.closest) {
-      Element.prototype.closest = function (s) {
-        var n = this;
-        while (n && n.nodeType === 1) { if (n.matches(s)) return n; n = n.parentElement; }
-        return null;
-      };
-    }
+    tail.innerHTML = '<b>最新一次：</b>' + escapeHtml(msg) + (where ? '<br><span style="opacity:.75">' + escapeHtml(where) + '</span>' : '');
+    box.hidden = false;
+    return;
   }
-  if (typeof window !== 'undefined' && !window.requestAnimationFrame) {
-    window.requestAnimationFrame = function (f) { return setTimeout(function () { f(new Date().getTime()); }, 16); };
+  fatalShown = true;
+  // 崩了不主动跳过 18R 门。gate 里是静态 HTML，continue 走的是 document 委托，
+  // 不依赖刚炸掉的那段初始化，通常还点得动；真点不动，错误条上有重新加载。
+  try {
+    const gate = document.getElementById('gate');
+    if (gate && gate.hidden && !gate.dataset.seen && !gateRemembered()) openGate();
+  } catch (e) {}
+  if (document.body) document.body.classList.remove('gate-locked');
+  box.textContent = '脚本出错，页面内容可能不完整。原因：' + msg;
+  if (where) {
+    const w = document.createElement('div');
+    w.style.cssText = 'margin-top:.4rem;opacity:.8';
+    w.textContent = where;
+    box.appendChild(w);
   }
-})();
-<!--PART11-->
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.textContent = '重新加载 Reload';
+  b.style.cssText = 'margin-left:.7rem;padding:.25rem .7rem;font-family:inherit;font-size:.8rem;background:var(--card);color:var(--danger);border:1px solid currentColor;border-radius:2px;cursor:pointer;';
+  b.addEventListener('click', () => location.reload());
+  box.appendChild(b);
+  box.hidden = false;
+  /* 错误条在页面最顶上，人可能正在中间操作、根本没往上看。所以同一条也塞进
+     输出区上方的提示栏——那里正好在视线里。 */
+  try {
+    const ib = document.getElementById('issues');
+    if (ib) {
+      const d = document.createElement('div');
+      d.textContent = '✕ 脚本出错：' + msg;
+      ib.insertBefore(d, ib.firstChild);
+    }
+  } catch (e) {}
+  try { window.scrollTo(0, 0); } catch (e) {}
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+}
+window.addEventListener('error', e => fatal(e.error || e.message));
+window.addEventListener('unhandledrejection', e => fatal(e.reason));
+<!--PART12-->
