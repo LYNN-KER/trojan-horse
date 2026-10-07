@@ -1,62 +1,51 @@
 
-  <section id="sec-char">
-    <h2>Characters <span class="cn">· 角色</span></h2>
-    <p class="hint">两侧都是完整角色，各自独立配置身体、生殖结构与人外特征。模型不会代写您的行为与台词，但需要知道您身上是什么，互动才写得成立。</p>
-    <div class="body-grid" id="char-grid"></div>
-    <div class="size-diff" id="size-diff">填写两侧身高以查看体型差。</div>
-  </section>
-
-  <section id="sec-role">
-    <h2>Dynamic <span class="cn">· 关系动态</span></h2>
-    <div class="pref-group">
-      <h3>Your position <span class="cn">· 您的定位</span></h3>
-      <div class="chips" data-group="posYou" data-multi="false" role="group" aria-label="您的定位"></div>
-    </div>
-    <div class="pref-group">
-      <h3>Their position <span class="cn">· 对方的定位</span></h3>
-      <div class="chips" data-group="posThem" data-multi="false" role="group" aria-label="对方定位"></div>
-    </div>
-    <div class="pref-group">
-      <h3>How they call you <span class="cn">· 对方如何称呼您</span></h3>
-      <div class="chips sm" data-group="titlesYou" data-multi="true" role="group" aria-label="对方对您的称谓"></div>
-    </div>
-    <div class="pref-group">
-      <h3>How you call them <span class="cn">· 您如何称呼对方</span></h3>
-      <div class="chips sm" data-group="titlesThem" data-multi="true" role="group" aria-label="您对对方的称谓"></div>
-    </div>
-    <p class="hint">同一体系内互斥，不同体系可叠加。侮辱性称呼与物品化称呼带红框。<span style="font-family:var(--serif-cn)">同体系互斥，跨体系可叠加。</span></p>
-  </section>
-
-  <section id="sec-play">
-    <h2>Repertoire <span class="cn">· 玩法强度</span></h2>
+  <section id="sec-obj">
+    <h2>Objectification <span class="cn">· 物化（独立）</span></h2>
     <div class="notice">
-      <strong>不用每一项都挑。</strong>默认交给模型判断——它会依据性格、称谓和你已勾选的约定自己挑，并被明确禁止引入你没同意过的玩法。四档量的是力度，不是同意。
+      <strong>物化不是强度，是视角框架。</strong>四档只管"做多重"；这一栏管的是"对方在你眼里还算不算人"。没有轻/中/重，只有开不开，以及关掉之后剩下的是什么。必须单独勾选。
     </div>
-    <div class="common-box">
-      <div class="common-head">
-        <span class="common-name">常用十项 <span class="n">· Common ten</span></span>
-        <span style="display:flex; gap:.4rem; flex-wrap:wrap">
-          <button class="btn pick" data-action="commonAll">全选 All</button>
-          <button class="btn pick" data-action="commonNone">清空 None</button>
-        </span>
+    <div class="obj-head">
+      <span class="switch" id="obj-switch" role="switch" aria-checked="false" aria-label="开启物化视角" tabindex="0"></span>
+      <div class="obj-title">启用物化视角 <span class="cn">· Treat them as not-a-person</span></div>
+    </div>
+    <div class="obj-body" id="obj-body" hidden>
+      <p class="inline-note" style="margin-top:0">Rung <span style="font-family:var(--serif-cn)">· 层级</span>（单选，越往下越彻底）</p>
+      <div class="obj-ladder" id="obj-ladder" role="radiogroup" aria-label="物化层级"></div>
+      <p class="inline-note" style="margin-top:.9rem">Modifiers <span style="font-family:var(--serif-cn)">· 附加规则</span>（可多选）</p>
+      <div class="obj-flags chips" id="obj-flags" data-group="objFlags" data-multi="true" role="group" aria-label="物化附加规则"></div>
+      <div class="field" style="margin-top:.9rem">
+        <label>Notes <span style="font-family:var(--serif-cn)">· 物化细节</span></label>
+        <textarea class="obj-note" id="obj-note" placeholder="例：编号 07；不使用时靠墙右侧；坏了不修直接换。"></textarea>
       </div>
-      <div class="common-list" id="common-list"></div>
-      <p class="inline-note" style="margin:.7rem 0 0">点一下按推荐强度选中，再点取消。选中后自动切到「逐项挑选」并写入 prompt；想改成别的强度，去下面逐项调。</p>
+      <p class="inline-note" style="margin-bottom:0">物化框架不解除安全约束：安全词照常生效，模型永远不能代写您的反应。</p>
     </div>
-    <div class="toolbar">
-      <button class="btn" data-action="playsMode" data-val="auto">交给模型 Auto</button>
-      <button class="btn" data-action="playsMode" data-val="pick">逐项挑选 Pick</button>
-    </div>
-    <div id="play-pick" hidden>
-      <div class="toolbar">
-        <button class="btn" data-action="expandAll">全部展开</button>
-        <button class="btn" data-action="collapseAll">全部收起</button>
-        <button class="btn pick" data-action="clearPlays">清空已选</button>
-        <label class="gate-check" style="margin:0; flex:1 1 140px"><input type="checkbox" id="plays-only"> <span>仅显示已选</span></label>
-      </div>
-      <div id="play-list"></div>
-    </div>
-    <div class="count-note" id="play-count"></div>
-    <a class="to-output" href="#sec-output">↓ 跳到输出 Output</a>
   </section>
-<!--PART7-->
+
+  <section id="sec-after">
+    <h2>Aftercare <span class="cn">· 事后照料（独立）</span></h2>
+    <div class="notice">
+      <strong>事后照料不是一个玩法，是一份承诺。</strong>它没有力度档位，只有"做到什么程度"。它也不该和扇耳光躺在同一个列表里被顺手勾掉——所以单独列在这里，单独开关。开重档玩法或物化视角而不开这一栏，会被拦下。
+    </div>
+    <div class="obj-head">
+      <span class="switch" id="ac-switch" role="switch" aria-checked="false" aria-label="启用事后照料" tabindex="0"></span>
+      <div class="obj-title">启用事后照料 <span class="cn">· What B does afterwards</span></div>
+    </div>
+    <div class="obj-body" id="ac-body" hidden>
+      <p class="inline-note" style="margin-top:0">Depth <span style="font-family:var(--serif-cn)">· 程度（单选）</span></p>
+      <div class="obj-ladder" id="ac-ladder" role="radiogroup" aria-label="事后照料程度"></div>
+      <p class="inline-note" style="margin-top:.9rem">Include <span style="font-family:var(--serif-cn)">· 具体做什么（可多选）</span></p>
+      <div class="chips sm" data-group="acParts" data-multi="true" role="group" aria-label="事后照料内容"></div>
+      <div class="mini-grid" style="margin-top:.8rem">
+        <div class="field">
+          <label>Timing <span style="font-family:var(--serif-cn)">· 时点</span></label>
+          <select id="ac-timing"></select>
+        </div>
+        <div class="field">
+          <label>Note <span style="font-family:var(--serif-cn)">· 补充</span></label>
+          <input type="text" class="st-text" id="ac-note" placeholder="例：结束后要先把被子盖好再说话" style="font-size:.88rem">
+        </div>
+      </div>
+      <p class="inline-note" style="margin-bottom:0">不写"愧疚"也不写"教学"；不把它当奖励，也不允许角色拿它当借口跳过。角色可以冷淡、可以别扭，但事情要做。</p>
+    </div>
+  </section>
+<!--PART8-->
