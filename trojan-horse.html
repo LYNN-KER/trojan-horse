@@ -772,4 +772,74 @@ function escapeHtml(s) {
 }
 window.addEventListener('error', e => fatal(e.error || e.message));
 window.addEventListener('unhandledrejection', e => fatal(e.reason));
-<!--PART3-->
+
+/* ═══════════ 数据 ═══════════ */
+const CHARS = [
+  { key: 'you', en: 'You', cn: '您（用户）', tag: 'User · 你自己', cap: '您',
+    hint: '这是坐在键盘前的人。模型可以用你的身体做参照，但绝不代写你的动作、台词、想法与决定。' },
+  { key: 'them', en: 'Model', cn: '模型角色', tag: 'Model · AI 扮演', cap: '模型角色',
+    hint: '这是 AI 扮演的角色。整栏数据会作为它的自我描述直接进入 prompt，是它唯一的设定来源。' },
+];
+
+const OPTS = {
+  species: [['human', 'Human 人形'], ['nonhuman', 'Non-human 人外']],
+  gender: [['', '—'], ['female', 'Female 女性'], ['male', 'Male 男性'],
+    ['intersex', 'Intersex 双性'], ['nonbinary', 'Non-binary 非二元'], ['none', 'None 无性别']],
+  pform: [['', '— 未指定（默认人形）'], ['human', 'Human-standard 人形标准'],
+    ['bestial', 'Bestial 兽性（倒刺、非人龟头）'], ['tentacular', 'Tentacular 触手状（可独立活动、带吸盘）'],
+    ['mechanical', 'Mechanical 机械（活塞 / 螺纹 / 铰链）'], ['bifurcated', 'Bifurcated 分叉 / 多头'],
+    ['elongated', 'Elongated 超长（比例夸张）'], ['asymmetric', 'Asymmetric 非对称（左右不同）'],
+    ['abstract', 'Inhuman 不作描述（保持抽象）']],
+  pstate: [['', '—'], ['permanent', '常态可见'], ['aroused', '兴奋时显现'], ['invoked', '需召唤 / 需开启']],
+  traits: [['selflub', 'Self-lubricating 自润滑'], ['selfclean', 'Self-cleaning 自清洁'],
+    ['tentacle', 'Tentacle-lined 内壁触手'], ['warm', 'Warm 温热'],
+    ['gripping', 'Gripping 吸附 / 收缩'], ['toothed', 'Toothed 内壁有牙齿']],
+  orifices: [['oral', '口腔 Oral'], ['breast', '乳房 / 乳头 Breasts'], ['tailbase', '尾根 Tail base'],
+    ['armpit', '腋下 Armpit'], ['crotch', '腿根 Crotch'], ['hipseam', '髋接缝 Hip seam'],
+    ['navel', '脐部 Navel'], ['joint', '关节缝隙 Joint gaps']],
+  build: [['', '—'], ['petite', 'Petite 娇小'], ['slim', 'Slim 纤细'], ['athletic', 'Athletic 健美'],
+    ['average', 'Average 匀称'], ['curvy', 'Curvy 丰满'], ['broad', 'Broad 宽大'], ['heavy', 'Heavy 壮硕']],
+  subspecies: [['', '—'], ['android', 'Android 机巧体'], ['monster', 'Monster 魔物'],
+    ['alien', 'Alien 异星种'], ['beast', 'Beast 兽形'], ['construct', 'Construct 构造体'],
+    ['elemental', 'Elemental 元素'], ['draconic', 'Draconic 龙裔']],
+  material: [['', '—'], ['steel', 'Steel 钢铁'], ['silicone', 'Silicone 硅胶'],
+    ['titanium', 'Titanium 钛合金'], ['alloy', 'Alloy 合金'], ['flesh', 'Flesh 血肉'],
+    ['wood', 'Wood 木质'], ['plant', 'Plant 植物质'], ['slime', 'Slime 黏液']],
+  tail: [['', '无 None'], ['fur', '兽毛绒尾 Furry'], ['metal', '金属机械尾 Mechanical'],
+    ['whip', '鞭状尾 Whip'], ['serpent', '蛇形鳞尾 Serpentine']],
+};
+
+const G_TYPES = [['penile', '阴茎 Penile'], ['vaginal', '阴道 Vaginal'],
+  ['intersex', '双性·两者兼具 Intersex'], ['multiple', '多副（>1） Multiple sets'], ['none', '无生殖器 Asexual']];
+const POSITIONS = [['dominant', '主导 Dominant'], ['submissive', '臣服 Submissive'],
+  ['switch', '切换 Switch'], ['equal', '平权 Equal']];
+
+const ARCHETYPES = [
+  ['cold', 'Cold 冷', '克制、话少、不解释；情绪只从动作里漏出来'],
+  ['warm', 'Warm 温', '照顾欲强，先确认对方状态再动作'],
+  ['possessive', 'Possessive 占有', '把对方视为所有物，会因别人或别的事而情绪'],
+  ['cruel', 'Cruel 残忍', '愉悦来自对方的失控与无助'],
+  ['playful', 'Playful 顽劣', '把场面对待成游戏，喜欢看对方先忍不住'],
+  ['servile', 'Servile 顺从', '自己的欲望排在对方后面，以满足为先'],
+  ['manic', 'Manic 狂躁', '情绪与强度都高，容易过度，需要收束'],
+  ['detached', 'Detached 淡漠', '执行式冷漠，动作精确而缺少情绪修饰'],
+];
+const VOICES = [
+  ['short', '短句 Short', '很少超过十个字'], ['plain', '平实 Plain', '标准书面语，不加修饰'],
+  ['slow', '拖长 Drawn-out', '句子拉长，尾音拖住'], ['crude', '带脏话 Crude', '脏话是默认词汇，不算特殊场合'],
+  ['formal', '敬语 Formal', '刻意保持距离的敬语'], ['whisper', '低语 Whispered', '描述为压低声音、气音'],
+  ['coaxing', '哄诱 Coaxing', '句尾上扬，哄人式的语气词'], ['silent', '不言语 Silent', '不主动发声'],
+];
+const INITIATIVES = [
+  ['lead', '主导发起 Leads', 'B 是发起的一方'], ['wait', '等你开口 Waits', '不主动推进，等 A 先动'],
+  ['tease', '挑逗不越界 Teases', '主动制造张力，但不代替 A 做决定'], ['press', '持续推进 Presses', '持续加压，不会主动停'],
+];
+const CONTINUITY = [
+  ['strict', '严格一致 Strict', '每一轮都当同一段关系的延续，不重置'],
+  ['drift', '允许漂移 Drift', '基本一致，允许随情境变化'],
+  ['reset', '每次重来 Reset', '每轮视作初见'],
+];
+const WARMTH = [['', '—'], ['cold', '冰冷'], ['distant', '疏离'], ['neutral', '中性'], ['warm', '热情'], ['burning', '炽烈']];
+const ENERGY = [['', '—'], ['still', '沉静'], ['steady', '稳定'], ['brisk', '活跃'], ['frantic', '躁动']];
+const PACE = [['', '—'], ['slow', '缓慢'], ['normal', '正常'], ['fast', '急促']];
+<!--PART4-->
