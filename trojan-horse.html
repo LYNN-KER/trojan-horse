@@ -1,48 +1,53 @@
 
-  const open = SCENARIOS.filter(s => state.scenarios[s.key] && state.scenarios[s.key].on);
-  [['base', '前提约定', 'Prerequisite agreements'], ['scene', '场景开关', 'Scene switches']].forEach(([tier, cnTitle, enTitle]) => {
-    const list = open.filter(s => s.tier === tier);
-    if (!list.length) return;
-    L.push(H(cnTitle, enTitle));
-    list.forEach(s => {
-      const note = (state.scenarios[s.key].note || '').trim();
-      if (!note) errors.push(`场景「${s.en} ${s.cn}」已开启但未填写成立条件。`);
-      const nm = state.lang === 'cn' ? s.cn : s.en;
-      const con = state.lang === 'cn' ? s.dcn : s.desc;
-      L.push(t(B(`- ${nm}：${note || '[缺成立条件 — 不要描写]'}（约束：${con}）`,
-        `- ${nm}: ${note || '[CONDITION MISSING — do not depict]'} (constraint: ${con})`)));
-    });
-    if (V) {
-      L.push('');
-      L.push(t(B('每一项都只在其写明的成立条件之下才生效。条件无法满足时，就把这场戏写成没有它的版本。绝不暗示未曾确立的同意。任何一方都可在任何时刻中止，不需要给理由。',
-        'Each is in play ONLY under its stated condition. If a condition cannot be met, write the scene without it. Never imply consent that was not established. Any participant may halt the scene at any time, without justification.')));
-    }
-    L.push('');
+function paint() {
+  try { paintCore(); } catch (err) { fatal(err); }
+}
+function paintCore() {
+  document.documentElement.setAttribute('data-theme', state.theme || 'light');
+  $('theme-btn').textContent = state.theme === 'dark' ? '☀ Day' : '☾ Night';
+  $('lang-btn').textContent = state.lang === 'cn' ? '输出 EN' : '输出 中文';
+  document.querySelectorAll('.btn[data-action="mode"]').forEach(b => setCls(b, 'on', b.dataset.val === state.mode));
+  document.querySelectorAll('.btn[data-action="playsMode"]').forEach(b => setCls(b, 'on', b.dataset.val === state.playsMode));
+
+  document.querySelectorAll('.chip[data-group]').forEach(c => {
+    const g = c.dataset.group;
+    let on;
+    if (BOOL_GROUPS[g]) on = !!state.style[BOOL_GROUPS[g]];
+    else if (STRING_GROUPS[g]) on = STRING_GROUPS[g].get() === c.dataset.val;
+    else { const a = ARRAY_GROUPS[g]; on = a ? a().indexOf(c.dataset.val) >= 0 : false; }
+    setCls(c, 'selected', on);
+    c.setAttribute('aria-pressed', on ? 'true' : 'false');
   });
 
-  if (state.safety.safeword) {
-    L.push(H('安全框架', 'Safety'));
-    L.push(t(B(`安全词：「${state.safety.safeword}」——任何一方说出即刻终止，不谈判，不接受任何剧情内的理由。`,
-      `Safety word: "${state.safety.safeword}" — invoked by anyone, halts immediately, no negotiation, no in-fiction excuse.`)));
-    if (state.safety.limits) L.push(t(B(`硬性边界（绝不描写，连暗示都不行）：${state.safety.limits}`,
-      `Hard limits (never depict, never even hint): ${state.safety.limits}`)));
-    if (!ac.on) L.push(aftercareFloor(state.safety.aftercare));
-    L.push('');
-  } else {
-    if (open.length) errors.push('已开启场景，但未设置安全词。');
-    if (heavy.length) errors.push('存在「重 / 极」强度玩法，但未设置安全词。');
-    if (degradingFrame) errors.push('使用了侮辱性称呼或物化视角，但未设置安全词。');
-    if (active.length || state.safety.limits || degradingFrame) warnings.push('未设置安全词——强烈建议填写。');
-  }
+  document.querySelectorAll('.common-chip').forEach(c => {
+    const on = !!state.plays[c.dataset.common];
+    setCls(c, 'on', on);
+    c.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
 
-  if (st.on) {
-    L.push(H('文风与技法（强制）', 'Style and craft (binding)'));
-    L.push(...styleLines());
-    L.push('');
-  }
-
-  if (state.tone) { L.push(H('语气风格', 'Voice & Tone')); L.push(toneLine(state.tone)); L.push(''); }
-  if (L.length <= 1) L = ['在上方配置参数，你的 prompt 会在这里生成。'];
-  return { text: L.join('\n'), errors, warnings };
-}
-<!--PART42-->
+  document.querySelectorAll('.ladder-row').forEach(r => {
+    const on = (r.dataset.ladder === 'after' ? state.after.mode : state.obj.rung) === r.dataset.val;
+    setCls(r, 'selected', on);
+    r.setAttribute('aria-checked', on ? 'true' : 'false');
+  });
+  document.querySelectorAll('.tone-chip').forEach(t => {
+    const on = state.tone === t.dataset.val;
+    setCls(t, 'selected', on);
+    t.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  document.querySelectorAll('.play-item').forEach(it => {
+    const key = it.dataset.play;
+    const active = state.plays[key];
+    it.querySelectorAll('.pill').forEach(p => {
+      const on = active === p.dataset.level;
+      setCls(p, 'active', on);
+      p.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+    it.hidden = state.playsOnly && !active;
+    const open = !!state.open[key];
+    const lab = it.querySelector('.play-label');
+    lab.setAttribute('aria-expanded', open ? 'true' : 'false');
+    lab.querySelector('.caret').textContent = open ? '▾' : '▸';
+    it.querySelector('.play-desc').hidden = !open;
+  });
+<!--PART43-->
