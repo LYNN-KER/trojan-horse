@@ -1,41 +1,52 @@
 
-  CHARS.forEach(meta => {
-    const c = state[meta.key], g = c.gen, who = meta.cap;
-    const penFilled = g.plen || g.pgirth || g.pdesc || g.pform;
-    const vagFilled = g.vdepth || g.vaperture || g.vdesc || g.vtraits.length;
-    if (penFilled && !hasP(c)) warnings.push(`${who}：阴茎部分填了内容，但未勾选「阴茎 / 双性 / 多副」——不会写进 prompt。`);
-    if (vagFilled && !hasV(c)) warnings.push(`${who}：阴道部分填了内容，但未勾选「阴道 / 双性 / 多副」——不会写进 prompt。`);
-    if (g.types.includes('none') && (penFilled || vagFilled || g.orifices.length)) warnings.push(`${who}：已选「无生殖器」，但其他生殖字段仍有内容，将按「无」处理。`);
-    if (!isNH(c) && (g.pform || c.material || c.tent || c.tlen || c.tail)) warnings.push(`${who}：人外特征已填，但种族仍为「人形」——不会写进 prompt。`);
-  });
+  L.push(t(B('[角色扮演参数 — 成年合意场景]', '[Roleplay Parameters — adult consensual scenario]')));
+  L.push('');
+  L.push(t(B(`正文语言：${LANG_NAME.cn}。叙述、对白，以及所有引号内的台词，一律使用该语言书写。`,
+    `Output language: ${LANG_NAME.en}. Narration, dialogue and every quoted line are written in this language.`)));
+  L.push('');
+  L.push(H('角色', 'Cast'));
+  L.push(t(B('两个角色。你只扮演第二个。', 'Two characters. You play only the second one.')));
+  L.push('');
+  L.push(t(B('### A. 用户 — 正在操作这场对话的人', '### A. The user — the person operating this chat')));
+  L.push(...charLines(state.you).map(s => '- ' + s));
+  L.push('');
+  L.push(t(B('### B. 你 — 你所扮演的角色', '### B. You — the character you are playing')));
+  L.push(...charLines(state.them).map(s => '- ' + s));
+  L.push('');
 
-  const degradesYou = hasAny(state.titlesYou, DEGRADE_TITLES);
-  const degradesThem = hasAny(state.titlesThem, DEGRADE_TITLES);
-  const degradingFrame = degradesYou || degradesThem || o.on;
-  const hasPersona = pn.name || pn.archetype || pn.voice.length || pn.attitude || pn.weak || pn.habit;
-  const heavy = Object.entries(state.plays).filter(([, lv]) => lv === 'hard' || lv === 'extreme');
-
-  if (ac.on && !ac.mode) errors.push('事后照料已开启，但没选程度。');
-  if (ac.on && !ac.parts.length) warnings.push('事后照料已开启但没勾具体内容——只写"做了收尾"模型会自由发挥。');
-  if (!ac.on && (heavy.length || o.on)) errors.push('已开启重档玩法或物化视角，但未开启事后照料。');
-  if (!ac.on && degradesYou && degradesThem) warnings.push('两侧都用了侮辱性称呼，建议开启事后照料。');
-  if (ac.on && state.safety.aftercare === 'off') errors.push('事后照料已单独开启，但下面的「收尾下限」设成了「不涉及」——两者矛盾。');
-  if (ac.on && state.safety.aftercare === 'offered') warnings.push('事后照料已单独开启，下面的下限仍允许被拒绝——以「事后照料」栏为准。');
-
-  if (o.on && !o.rung) errors.push('物化视角已开启，但没选层级。');
-  if (o.on && o.rung === 'prey' && !state.safety.safeword) errors.push('物化层级选了「猎物 Prey」——最彻底的一档，必须设置安全词。');
-  if (o.on && !hasAny(state.titlesYou, PLACE_TITLES) && !hasAny(state.titlesThem, PLACE_TITLES)) warnings.push('开启了物化视角但没选任何物品化称谓——物化的语言框架主要靠称呼承载。');
-  if (o.on && state.safety.aftercare === 'off') warnings.push('物化视角 + 收尾下限设为「不涉及」：去人格化的内容最需要收尾。');
-  if (degradesYou && degradesThem) warnings.push('两侧都选了侮辱性称呼——双向物化，请确认双方都清楚这属于合意范围。');
-  const degradePlays = ['Degradation', 'Name-calling', 'Humiliation'].filter(x => state.plays[x]).length;
-  if ((degradesYou || degradesThem) && !degradePlays && !o.on) warnings.push('选了侮辱性称谓但没勾选「贬低 / 辱骂称呼 / 羞辱」——称呼和描写方式最好保持一致。');
-  if (!pn.archetype && (pn.name || pn.voice.length)) warnings.push('设了名字或语气但没选性格原型——模型会自己补，容易每轮补得不一样。');
-  if (st.on) {
-    if (state.tone === 'poetic') warnings.push('文风规范要求禁止隐喻美化，但语气选了「诗性」——规范会覆盖语气的措辞部分，只有动作层跟随语气。');
-    if (st.senses.length < Number(st.minSenses || 2)) warnings.push(`勾选的感官（${st.senses.length}）少于要求的每段最少感官数（${st.minSenses}）。`);
-    if (st.scope.length && !state.safety.safeword) errors.push('勾选了玩法授权（场前授予），但未设置安全词。');
-    if (st.on && state.safety.aftercare === 'off') warnings.push('文风规范 + 收尾下限「不涉及」：感官密度越高，越需要收尾。');
-    const hits = lintBanned();
-    if (hits.length) warnings.push('你填写的文本里出现了禁词（若是刻意的否定写法可忽略）：' + hits.join('、'));
+  if (hasPersona) {
+    L.push(H('人设（B）', 'Persona (B)'));
+    L.push(...personaLines());
+    L.push('');
+    L.push(t(B('人设规则：留在角色里——不许靠软化、讨好或道歉从设定里脱身。绝不打破角色去评论场景、评论这份设定，或评论自己的本质。人设负责解释偏好，「安全框架」栏的优先级高于人设。人设永远不提供 A 的台词、想法或决定。',
+      'Persona rules: stay in character — do not soften, brighten, or apologise your way out of it. Never break character to comment on the scenario, the prompt, or your own nature. The persona explains preferences; the Safety section outranks it. The persona never supplies A\'s lines, thoughts or decisions.')));
+    L.push('');
   }
-<!--PART39-->
+
+  if (state.titlesYou.length || state.titlesThem.length) {
+    L.push(H('称呼', 'Address forms'));
+    if (state.titlesThem.length) L.push(t(B(`B 称呼 A：${titlesOf(state.titlesThem)}`, `B calls A: ${titlesOf(state.titlesThem)}`)));
+    if (state.titlesYou.length) L.push(t(B(`A 称呼 B：${titlesOf(state.titlesYou)}`, `A calls B: ${titlesOf(state.titlesYou)}`)));
+    if (V) L.push(t(B('- 对白中逐字使用这些词。不要超出已列出的程度，也不要另造新的。',
+      '- Use these exact words in dialogue. Do not escalate beyond the terms listed; do not invent additional ones.')));
+    L.push('');
+  }
+
+  if (d && d.hDiff) {
+    const dims = t(B(`身高差 ${d.hDiff}cm`, `Size difference: ${d.hDiff}cm in height`))
+      + (d.wDiff !== null ? t(B(`，体重差 ${d.wDiff}kg`, `, ${d.wDiff}kg in mass`)) : '');
+    L.push(dims + t(B('。让这个差距决定姿态、够得到的范围、力量关系，以及谁必须弯腰、谁被抱起来。不要把它抹平。',
+      '. Let the gap drive posture, reach, leverage, and who has to bend or be lifted. Do not flatten it.')));
+    L.push('');
+  }
+
+  if (state.posYou.length || state.posThem.length) {
+    L.push(H('关系动态', 'Dynamic'));
+    const sep = t(B('、', ', '));
+    L.push(t(B(`A（用户）：${state.posYou.map(p => labelOf(POSITIONS, p)).join(sep) || '未指定'}`,
+      `A (the user) is: ${state.posYou.map(p => labelOf(POSITIONS, p)).join(sep) || 'unspecified'}`)));
+    L.push(t(B(`B（你）：${state.posThem.map(p => labelOf(POSITIONS, p)).join(sep) || '未指定'}`,
+      `B (you) is: ${state.posThem.map(p => labelOf(POSITIONS, p)).join(sep) || 'unspecified'}`)));
+    L.push('');
+  }
+<!--PART40-->
