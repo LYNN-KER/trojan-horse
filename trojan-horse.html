@@ -1,74 +1,68 @@
 
-const state = {
-  you: blankChar(), them: blankChar(), persona: blankPersona(), obj: blankObj(), after: blankAfter(), style: blankStyle(),
-  posYou: [], posThem: [], titlesYou: [], titlesThem: [],
-  plays: {}, open: {}, scenarios: {}, tone: '',
-  safety: { safeword: '', aftercare: 'required', limits: '' },
-  theme: 'light', mode: 'full', lang: 'cn', playsMode: 'auto', playsOnly: false,
-};
-
-function normChar(src) {
-  const c = Object.assign(blankChar(), src || {});
-  c.gen = Object.assign(blankGen(), (src && src.gen) || {});
-  return c;
+function resetState() {
+  const t = state.theme, m = state.mode, pm = state.playsMode, lg = state.lang;
+  state.you = blankChar(); state.them = blankChar(); state.obj = blankObj();
+  state.after = blankAfter(); state.persona = blankPersona(); state.style = blankStyle();
+  state.posYou = []; state.posThem = []; state.titlesYou = []; state.titlesThem = [];
+  state.plays = {}; state.open = {}; state.scenarios = {}; state.tone = '';
+  state.safety = { safeword: '', aftercare: 'required', limits: '' };
+  state.theme = t; state.mode = m; state.playsMode = pm; state.lang = lg; state.playsOnly = false;
 }
 
-const STRING_GROUPS = {
-  pformYou: { get: () => state.you.gen.pform, set: v => { state.you.gen.pform = v; } },
-  pformThem: { get: () => state.them.gen.pform, set: v => { state.them.gen.pform = v; } },
-  objRung: { get: () => state.obj.rung, set: v => { state.obj.rung = v; } },
-  acMode: { get: () => state.after.mode, set: v => { state.after.mode = v; } },
-  pnArch: { get: () => state.persona.archetype, set: v => { state.persona.archetype = v; } },
-  pnInit: { get: () => state.persona.initiative, set: v => { state.persona.initiative = v; } },
-  pnCont: { get: () => state.persona.continuity, set: v => { state.persona.continuity = v; } },
-};
-const BOOL_GROUPS = {
-  stVocabLock: 'vocabLock', stToneBond: 'toneBond', stSound: 'sound', stReact: 'react', stNoFade: 'noFade',
-};
-const ARRAY_GROUPS = {
-  gTypesYou: () => state.you.gen.types, gTypesThem: () => state.them.gen.types,
-  vtraitsYou: () => state.you.gen.vtraits, vtraitsThem: () => state.them.gen.vtraits,
-  orificesYou: () => state.you.gen.orifices, orificesThem: () => state.them.gen.orifices,
-  objFlags: () => state.obj.flags, acParts: () => state.after.parts, pnVoice: () => state.persona.voice,
-  stSenses: () => state.style.senses, stTags: () => state.style.tags,
-  stTalk: () => state.style.talk, stScope: () => state.style.scope,
-  stStages: () => state.style.stages, stLint: () => state.style.lint,
-  posYou: () => state.posYou, posThem: () => state.posThem,
-  titlesYou: () => state.titlesYou, titlesThem: () => state.titlesThem,
-};
-const STICKY_RADIO = new Set(['posYou', 'posThem', 'pnArch', 'pnInit', 'pnCont']);
+function exportFile() {
+  flushSave();
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  // 本地日期，不是 toISOString 的 UTC 日期 —— 晚上导出的人不想看到明天的文件名
+  const d = new Date();
+  const stamp = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  a.download = 'trojan-horse-' + stamp + '.json';
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+function revealText(text) {
+  $('share-cap').hidden = false;
+  const box = $('share-out');
+  box.hidden = false; box.value = text; box.select();
+}
+function hideReveal() { $('share-cap').hidden = true; $('share-out').hidden = true; }
+async function copyText(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); return true; }
+  } catch (e) { /* fallback */ }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+    document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, text.length);
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch (e) { return false; }
+}
 
-let saveTimer = null;
-function save() { clearTimeout(saveTimer); saveTimer = setTimeout(flushSave, 300); }
-function flushSave() {
-  clearTimeout(saveTimer); saveTimer = null;
-  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+const $ = id => document.getElementById(id);
+const opts = list => list.map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
+const field = (label, inner) => `<div class="field"><label>${label}</label>${inner}</div>`;
+const chipHtml = (group, val, label, axis) =>
+  `<span class="chip${axis ? ' axis-' + axis : ''}" role="button" tabindex="0" aria-pressed="false" data-group="${group}" data-val="${val}"${axis ? ` data-axis="${axis}"` : ''}>${label}</span>`;
+function fillChips(sel, group, list) {
+  const box = document.querySelector(`[data-group="${sel}"]`);
+  if (!box) throw new Error('缺少容器 [data-group="' + sel + '"]');
+  list.forEach(item => {
+    const val = Array.isArray(item) ? item[0] : item.en;
+    const label = Array.isArray(item) ? item[1] : item.en;
+    const axis = Array.isArray(item) ? null : item.axis;
+    box.insertAdjacentHTML('beforeend', chipHtml(group, val, label, axis));
+  });
 }
-window.addEventListener('pagehide', flushSave);
-window.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushSave(); });
-
-function applyState(d) {
-  if (!d || !d.you || !d.them) throw new Error('配置格式不正确');
-  state.you = normChar(d.you);
-  state.them = normChar(d.them);
-  state.persona = Object.assign(blankPersona(), d.persona || {});
-  state.obj = Object.assign(blankObj(), d.obj || {});
-  state.after = Object.assign(blankAfter(), d.after || {});
-  state.style = Object.assign(blankStyle(), d.style || {});
-  ['posYou', 'posThem', 'titlesYou', 'titlesThem'].forEach(k => { if (Array.isArray(d[k])) state[k] = d[k]; else state[k] = []; });
-  state.plays = d.plays || {};
-  state.open = d.open || {};
-  state.scenarios = d.scenarios || {};
-  state.tone = d.tone || '';
-  state.safety = Object.assign({ safeword: '', aftercare: 'required', limits: '' }, d.safety || {});
-  state.theme = d.theme || 'light';
-  state.mode = d.mode === 'compact' ? 'compact' : 'full';
-  state.lang = d.lang === 'en' ? 'en' : 'cn';
-  state.playsMode = d.playsMode === 'pick' ? 'pick' : 'auto';
-  state.playsOnly = !!d.playsOnly;
+function ladderHtml(id, list) {
+  return list.map(m => `
+    <div class="ladder-row" role="radio" aria-checked="false" tabindex="0" data-ladder="${id}" data-val="${m.key}">
+      <span class="ladder-dot"></span>
+      <span><span class="ladder-name">${m.en}<span class="cn">${m.cn}</span></span>
+      <span class="ladder-desc">${m.d}</span></span>
+    </div>`).join('');
 }
-function load() {
-  try { const raw = localStorage.getItem(KEY); if (!raw) return false; applyState(JSON.parse(raw)); return true; }
-  catch (e) { return false; }
-}
-<!--PART22-->
+<!--PART23-->
