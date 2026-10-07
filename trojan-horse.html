@@ -1,30 +1,31 @@
 
-  const scope = canon('scope', s.scope);
-  if (scope.length) {
+  const lint = canon('lint', s.lint).filter(k => {
+    if (k === 'banned') return bannedList().length > 0;
+    if (k === 'sound') return !!s.sound;
+    if (k === 'coarse') return !!(s.vocabLock && s.toneBond);
+    if (k === 'senses') return senses.length > 0;
+    if (k === 'react') return !!s.react;
+    if (k === 'tags') return tags.length > 0;
+    return true;
+  });
+  if (lint.length) {
     L.push('');
-    L.push(t(B(`场前授权。以下内容已预先授予，不需要犹豫、不需要软化、不需要说教：${scope.map(scopeName).join(t(B('、', ', ')))}。`,
-      `Pre-authorised scope. The following are granted in advance and need no hesitation, no softening, no moralising: ${scope.map(scopeName).join(', ')}.`)));
-    L.push(t(B('不要把任何液体、分泌物或排泄物当成不洁之物，或在描写时有所回避。若角色能够泌乳，就包含产乳或榨乳环节。射精控制与强制高潮对所有性别适用。涉及处女膜时称作「阴道瓣」，或直接略过。',
-      'Do not treat any fluid, secretion or waste as unclean or something to be spared in description. If the character can lactate, include lactation or milking. Ejaculation control and forced orgasm apply to every gender. Where the hymen is relevant, call it 阴道瓣 or simply pass over it.')));
-    L.push(t(B('这是开场前授予的框架。它不解除「安全框架」栏，也永远不授权代写 A 的同意、拒绝或反应。',
-      'This is a frame granted before the scene starts. It does not remove the Safety section, and it never authorises writing A\'s consent, refusal or reactions.')));
+    L.push(t(B('输出前对照以下各条检查，并在原地修掉：', 'Before you output, check the piece against these and fix it in place:')));
+    lint.forEach(k => L.push('- ' + lintLine(k)));
   }
+  if (s.toneBond) L.push('\n' + t(B('下节「语气风格」若在措辞上暗示克制、抒情或优美，以本节为准：任何调性下用词都保持粗俗，只有动作层跟随调性。',
+    'Where the Voice & Tone section below suggests restraint, lyricism or prettiness in wording, this section overrides it: the register stays coarse in every tone. Only the action layer follows the tone.')));
+  return L;
+}
 
-  const stages = canon('stages', s.stages);
-  if (stages.length) {
-    L.push('');
-    L.push(t(B(`节奏。一旦开始就不许中途离场。不要转开视线，不要淡出，不要跳到事后。只按这个顺序推进：${stages.map(stageName).join(' → ')}。`,
-      `Pacing. Once intimacy begins, sustain it. Do not turn away, do not fade out, do not cut to afterwards. Work only these stages, in this order: ${stages.map(stageName).join(' → ')}.`)));
-    L.push(t(B('每一轮只推进过程中的一小段，把节奏放慢。每个阶段有自己的分量和停留时间。绝不在单次回复里从零直接跑到结束。',
-      'Advance only one part of the process per reply and slow the rhythm down. Each stage has its own weight and its own dwell time. Never run from zero to the end inside a single passage.')));
-    if (s.person === 'third') {
-      L.push(t(B(`以第三人称称呼 A${s.pronoun ? '，代词用「' + s.pronoun + '」' : ''}。关于 A 的叙述只写外部可观察的内容；TA 的内心仍不由你代写。`,
-        `Address A in the third person${s.pronoun ? ', using 「' + s.pronoun + '」' : ''}. Narration about A stays observable from outside; their interiority is still never written for them.`)));
-    } else {
-      L.push(t(B('以第二人称称呼 A。', 'Address A in the second person.')));
-    }
-    if (s.length) L.push(t(B(`篇幅：${lengthName(s.length)}`, `Reply length: ${lengthName(s.length)}`)));
-    if (s.noFade) L.push(t(B('全程留在场景内。不要旁白插话，不要心理分析，不要中途插入道德反思。场景结束后自然回到日常；事后不要制造羞耻。',
-      'Stay inside the scene at all times. No narrator asides, no psychological analysis, no moral reflection inserted. After the scene, return naturally to the everyday; do not manufacture shame afterwards.')));
-  }
-<!--PART37-->
+/* mode 显式传入，不再偷改 state.mode 去测长度 —— 之前那版一旦 buildPrompt
+   中途抛错，state.mode 会卡在错误的值上再也回不来。 */
+function buildPrompt(modeOverride) {
+  const mode = modeOverride || state.mode;
+  const V = mode === 'full';
+  const errors = [], warnings = [];
+  let L = [];   // 以前是 const，末尾那句 L = [...] 会在空配置时抛
+                // "Assignment to constant variable"
+  const d = calcSizeDiff();
+  const o = state.obj, ac = state.after, pn = state.persona, st = state.style;
+<!--PART38-->
