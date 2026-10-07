@@ -573,7 +573,7 @@
       <div class="sub-block st">
         <h4>Self-check <span class="cn">· 输出自检</span></h4>
         <div class="chips sm" data-group="stLint" data-multi="true" role="group" aria-label="自检项"></div>
-        <p class="inline-note" style="margin-bottom:0">只输出与已启用规则对应的检查项；勾选的项同时用于扫描你自己填写的文本里是否误用了禁词。</p>
+        <p class="inline-note" style="margin-bottom:0">只输出与已启用规则对应的检查项；勾选的项同时用于扫描你自己填写的文本里是否误使用了禁词。</p>
       </div>
     </div>
   </section>
@@ -1007,4 +1007,19 @@ const ST_LENGTH_EN = {
   medium: 'One or two paragraphs. Stay inside the current stage.',
   long: 'A full passage within the current stage. Never skip ahead to a later stage in the same reply.',
 };
-<!--PART7-->
+
+const ORDER = {
+  senses: ST_SENSES.map(x => x[0]),
+  tags: ST_TAGS.map(x => x[0]),
+  talk: ST_TALK.map(x => x[0]),
+  scope: ST_SCOPE.map(x => x[0]),
+  stages: ST_STAGES.map(x => x[0]),
+  lint: ST_LINT.map(x => x[0]),
+  titles: TITLE_ORDER,
+};
+const canon = (key, list) => {
+  const o = ORDER[key];
+  if (!o) return list;
+  return list.filter(k => o.includes(k)).sort((a, b) => o.indexOf(a) - o.indexOf(b));
+};
+<!--PART8-->
