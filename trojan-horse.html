@@ -1,57 +1,48 @@
 
-  // 页眉自检：一眼看出语言层是否完整、有没有 undefined 混进产出
-  let diag = $('diag');
-  if (!diag) {
-    diag = document.createElement('div');
-    diag.id = 'diag';
-    diag.style.cssText = 'margin-top:.5rem;font:11px/1.5 ui-monospace,Menlo,monospace;color:var(--muted);opacity:.65;letter-spacing:0;text-transform:none';
-    const h = document.querySelector('header');
-    if (h) h.appendChild(diag);
-  }
-  // 注意用 typeof 直接判作用域内的绑定：顶层 const 不会挂到 window 上，
-  // 写成 window[k] 会永远误报 MISSING。
-  const layerOk = typeof splitBi === 'function' && typeof vocabLines === 'function'
-    && typeof scopeName === 'function' && typeof descOf === 'function' && typeof titleText === 'function';
-  diag.textContent = 'lang-layer ' + (layerOk ? 'ok' : 'MISSING') + ' · undefined 混入产出: ' + (/\bundefined\b|\[object Object\]/.test(text) ? '有' : '无');
-
-  save();
-}
-
-async function copyOutput(btn) {
+function handleClick(e) {
+  if (e.__thDone) return;
+  e.__thDone = true;
   try {
-    const b = btn || $('copy-btn');
-    if (!b.dataset.label) b.dataset.label = b.textContent;
-    const label = b.dataset.label;
-    const text = $('output').textContent;
-    if (await copyText(text)) {
-      hideReveal();
-      b.textContent = '已复制 ✓';
-      b.classList.add('copied');
-      setTimeout(() => { b.textContent = label; b.classList.remove('copied'); }, 1500);
-    } else {
-      revealText(text);
-      b.textContent = '复制失败 · 已展开供手动选择';
-      setTimeout(() => { b.textContent = label; b.classList.remove('copied'); }, 2000);
-    }
+    const act = closestOf(e.target, '[data-action]');
+    if (act) return handleAction(act.dataset.action, act);
+    const cm = closestOf(e.target, '.common-chip');
+    if (cm) return toggleCommon(cm.dataset.common);
+    const pill = closestOf(e.target, '.pill');
+    if (pill) return togglePill(pill);
+    const chip = closestOf(e.target, '.chip');
+    if (chip) return toggleChip(chip);
+    const lab = closestOf(e.target, '.play-label');
+    if (lab) return toggleDesc(lab);
+    const lad = closestOf(e.target, '.ladder-row');
+    if (lad) return toggleLadder(lad);
+    const tc = closestOf(e.target, '.tone-chip');
+    if (tc) { state.tone = state.tone === tc.dataset.val ? '' : tc.dataset.val; return paint(); }
+    const sw = closestOf(e.target, '.switch');
+    if (sw) return toggleSwitch(sw);
   } catch (err) { fatal(err); }
 }
-
-/* ═══════════ 事件总线 ═══════════
-   原来所有交互只挂一层 document 委托。那是单点：宿主 WebView 吞掉冒泡、有脚本在
-   document 上拦一道、或者初始化在注册之前就断了，委托就整层失效——而界面照样完整，
-   因为渲染是 paint() 干的，跟事件无关。于是正好是「页面好好的，一个都按不动」。
-
-   现在不押单点：每个可交互元素直接绑一次，document 冒泡与 window 捕获各再兜一层。
-   三条通道拿到的是同一个事件对象，靠上面的标记保证一次点击只被处理一次。 */
-function closestOf(target, sel) {
-  let n = target, guard = 0;
-  while (n && guard++ < 12) {
-    if (n.nodeType === 1) {
-      if (typeof n.closest === 'function') { try { return n.closest(sel); } catch (e) {} }
-      if (typeof n.matches === 'function' && n.matches(sel)) return n;
+const CLICKABLE = '[data-action],.chip,.pill,.common-chip,.tone-chip,.switch,.ladder-row,.play-label';
+function bindInteractive(root) {
+  const scope = root || document;
+  let n = 0;
+  if (scope.querySelectorAll) {
+    const list = scope.querySelectorAll(CLICKABLE);
+    for (let i = 0; i < list.length; i++) {
+      const el = list[i];
+      if (el.__thBound) continue;
+      el.__thBound = true;
+      el.addEventListener('click', handleClick);
+      n++;
     }
-    n = n.parentNode;
   }
-  return null;
+  if (scope.nodeType === 1 && !scope.__thBound && typeof scope.matches === 'function' && scope.matches(CLICKABLE)) {
+    scope.__thBound = true;
+    scope.addEventListener('click', handleClick);
+    n++;
+  }
+  return n;
 }
-<!--PART45-->
+/* 两条兜底通道在脚本刚跑到这里时就挂上，哪怕后面的初始化炸了也还在。 */
+document.addEventListener('click', handleClick);
+window.addEventListener('click', handleClick, true);
+<!--PART46-->
