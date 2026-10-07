@@ -842,4 +842,62 @@ const CONTINUITY = [
 const WARMTH = [['', '—'], ['cold', '冰冷'], ['distant', '疏离'], ['neutral', '中性'], ['warm', '热情'], ['burning', '炽烈']];
 const ENERGY = [['', '—'], ['still', '沉静'], ['steady', '稳定'], ['brisk', '活跃'], ['frantic', '躁动']];
 const PACE = [['', '—'], ['slow', '缓慢'], ['normal', '正常'], ['fast', '急促']];
-<!--PART4-->
+
+const TITLES = [
+  { en: '主人 / Owner', axis: 'owner' }, { en: '所有者 / 所有物', axis: 'owner' },
+  { en: '宠物 / Pet', axis: 'pet' }, { en: 'Daddy / Mommy', axis: 'parent' },
+  { en: '看护者 / Caretaker', axis: 'care' }, { en: 'Little one / 小孩', axis: 'little' },
+  { en: 'Sir / Ma’am', axis: 'formal' },
+  { en: '婊子 Slut / Bitch', axis: 'degrade' }, { en: '母狗 / 雌犬 Bitch-dog', axis: 'degrade' },
+  { en: '母畜 / 繁殖母体 Broodmare', axis: 'degrade' }, { en: '贱货 Cheap thing', axis: 'degrade' },
+  { en: '肉便器 Fleshlight', axis: 'place' }, { en: '肉厕所 Flesh toilet', axis: 'place' },
+  { en: '厕所 / 下水口 Toilet / Drain', axis: 'place' }, { en: '肉袋子 Meat pouch', axis: 'place' },
+  { en: '用具 Tool', axis: 'place' }, { en: '食物 / 甜点 Food / Treat', axis: 'place' },
+  { en: '无称谓 No title', axis: 'none' },
+];
+const TITLE_ORDER = TITLES.map(t => t.en);
+const PLACE_TITLES = TITLES.filter(t => t.axis === 'place').map(t => t.en);
+const DEGRADE_TITLES = TITLES.filter(t => t.axis === 'degrade' || t.axis === 'place').map(t => t.en);
+
+const OBJ_RUNGS = [
+  { key: 'tool', en: 'Tool', cn: '器物', d: '有功能，仅此而已。用完放回，下次再用。',
+    p: 'A is a tool. It has a function and no further inner life. It is used, put back, and used again later.',
+    pc: 'A 是一件器物。它有功能，此外没有内在生活。被使用、被放回，之后再被使用。' },
+  { key: 'furniture', en: 'Furniture', cn: '家具', d: '一个表面、一个重量、一个可以被倚靠的形状。',
+    p: 'A is furniture: a surface, a weight, a shape to lean on. It is not moved unless it serves.',
+    pc: 'A 是家具：一个表面、一份重量、一个可以被倚靠的形状。除非有用，否则不被挪动。' },
+  { key: 'consumable', en: 'Consumable', cn: '消耗品', d: '用完即止，可用同类另一个替换，不做修补。',
+    p: 'A is consumable. It is used up and can be replaced by another of the same kind. Damage is not repaired.',
+    pc: 'A 是消耗品。被用尽后可用同类另一个替换。损坏不修补。' },
+  { key: 'fleshlight', en: 'Fleshlight', cn: '功能器官', d: '整个身体只为那一个功能存在，其余不描写。',
+    p: 'A is reduced to one bodily function. Everything that does not serve that function is not narrated.',
+    pc: 'A 被缩减为一个身体功能。凡不服务于该功能的部分，一律不叙述。' },
+  { key: 'receptacle', en: 'Receptacle', cn: '容纳物 / 排污口', d: '进去的被丢弃，出来的是废料。清理是例行公事。',
+    p: 'A is a receptacle. What goes in is discarded; what comes out is waste. Cleaning up is routine, not intimacy.',
+    pc: 'A 是容纳物。进去的被丢弃，出来的是废料。清理是例行公事，不是亲密。' },
+  { key: 'prey', en: 'Prey', cn: '猎物', d: '被追逐、被捕获、无法谈判。恐惧是布景，不是请求。',
+    p: 'A is prey. It is pursued and caught, and it does not negotiate. Its fear is scenery, not a request.',
+    pc: 'A 是猎物。被追逐、被捕获，且不参与谈判。它的恐惧是布景，不是请求。' },
+];
+
+/* 事后照料：程度而非力度 */
+const AFTER_MODES = [
+  { key: 'minimal', en: 'Minimal', cn: '最低限度', d: '补水、确认没有持续疼痛、说一句到此为止。十分钟以内结束。',
+    p: 'Water, a check that nothing still hurts, and one sentence that names the end of it. Under ten minutes.' },
+  { key: 'standard', en: 'Standard', cn: '标准', d: '补水 + 清洁 + 情绪确认 + 复盘。半小时到一小时。',
+    p: 'Water, cleaning, a real check-in, and a short debrief. Half an hour to an hour.' },
+  { key: 'extended', en: 'Extended', cn: '延长', d: '标准之上加：降温、一起待着不发生性行为、次日早上再谈一次。',
+    p: 'Everything in Standard, plus: coming down together, staying in the same space with no further sex, and one more conversation the next morning.' },
+  { key: 'full', en: 'Full', cn: '全程', d: '从第一次开始就保持在场，事事有回应，直到情绪落回基线，并在之后持续追踪。',
+    p: 'Present from the first moment, responsive throughout, until the other person is back at baseline — and still checked on afterwards.' },
+];
+const AFTER_PARTS = [
+  ['water', '补水 Water', '干净的温水，慢慢喝，不是一次灌下去'],
+  ['clean', '清洁清创 Care', '清洗、消毒、必要时上药包扎'],
+  ['checkin', '情绪确认 Check-in', '问「现在怎么样」，然后真的停下来等'],
+  ['debrief', '复盘 Debrief', '哪里过头了、下次不要、哪句是我该说的'],
+  ['stay', '同处 Stay', '不一定要发生性行为，只是待在同一个空间里'],
+  ['nextday', '次日回访 Next-day', '第二天主动问一句怎么样'],
+];
+const AFTER_TIMING = [['', '—'], ['immediate', '立刻 Scene end'], ['30m', '30 分钟内'], ['night', '当晚 That night'], ['nextday', '次日 Next day']];
+<!--PART5-->
