@@ -1,53 +1,50 @@
 
-function paint() {
-  try { paintCore(); } catch (err) { fatal(err); }
-}
-function paintCore() {
-  document.documentElement.setAttribute('data-theme', state.theme || 'light');
-  $('theme-btn').textContent = state.theme === 'dark' ? '☀ Day' : '☾ Night';
-  $('lang-btn').textContent = state.lang === 'cn' ? '输出 EN' : '输出 中文';
-  document.querySelectorAll('.btn[data-action="mode"]').forEach(b => setCls(b, 'on', b.dataset.val === state.mode));
-  document.querySelectorAll('.btn[data-action="playsMode"]').forEach(b => setCls(b, 'on', b.dataset.val === state.playsMode));
-
-  document.querySelectorAll('.chip[data-group]').forEach(c => {
-    const g = c.dataset.group;
-    let on;
-    if (BOOL_GROUPS[g]) on = !!state.style[BOOL_GROUPS[g]];
-    else if (STRING_GROUPS[g]) on = STRING_GROUPS[g].get() === c.dataset.val;
-    else { const a = ARRAY_GROUPS[g]; on = a ? a().indexOf(c.dataset.val) >= 0 : false; }
-    setCls(c, 'selected', on);
-    c.setAttribute('aria-pressed', on ? 'true' : 'false');
+  document.querySelectorAll('[data-char]').forEach(card => {
+    const c = state[card.dataset.char];
+    card.querySelectorAll('.nh-only').forEach(el => setCls(el, 'block-off', !isNH(c)));
+    setCls(card.querySelector('.g-penile'), 'block-off', !hasP(c));
+    setCls(card.querySelector('.g-vaginal'), 'block-off', !hasV(c));
+  });
+  $('obj-switch').setAttribute('aria-checked', state.obj.on ? 'true' : 'false');
+  $('obj-body').hidden = !state.obj.on;
+  $('ac-switch').setAttribute('aria-checked', state.after.on ? 'true' : 'false');
+  $('ac-body').hidden = !state.after.on;
+  $('st-switch').setAttribute('aria-checked', state.style.on ? 'true' : 'false');
+  $('st-body').hidden = !state.style.on;
+  $('st-pronoun-wrap').hidden = state.style.person !== 'third';
+  document.querySelectorAll('.scenario').forEach(row => {
+    const s = state.scenarios[row.dataset.key];
+    const on = !!(s && s.on);
+    row.querySelector('.switch').setAttribute('aria-checked', on ? 'true' : 'false');
+    const n = row.querySelector('.scenario-note');
+    n.disabled = !on;
+    /* 正在这里打字就别回写，否则光标会被 paint 踢走，输入框看起来也像坏了。 */
+    const want = (s && s.note) || '';
+    if (n.value !== want && document.activeElement !== n) n.value = want;
+    setCls(row, 'open', on);
   });
 
-  document.querySelectorAll('.common-chip').forEach(c => {
-    const on = !!state.plays[c.dataset.common];
-    setCls(c, 'on', on);
-    c.setAttribute('aria-pressed', on ? 'true' : 'false');
-  });
+  const playCount = Object.keys(state.plays).length;
+  const commonOn = COMMON.filter(c => state.plays[c.en]).length;
+  $('play-pick').hidden = state.playsMode !== 'pick';
+  $('play-count').textContent =
+    '常用十项已选 ' + commonOn + ' / ' + COMMON.length +
+    '　·　全部玩法已选 ' + playCount + ' / ' + PLAYS.reduce((n, g) => n + g.items.length, 0) +
+    (state.playsMode === 'auto' ? '　·　当前为「交给模型」，以上选择暂不写入 prompt' : '');
 
-  document.querySelectorAll('.ladder-row').forEach(r => {
-    const on = (r.dataset.ladder === 'after' ? state.after.mode : state.obj.rung) === r.dataset.val;
-    setCls(r, 'selected', on);
-    r.setAttribute('aria-checked', on ? 'true' : 'false');
-  });
-  document.querySelectorAll('.tone-chip').forEach(t => {
-    const on = state.tone === t.dataset.val;
-    setCls(t, 'selected', on);
-    t.setAttribute('aria-pressed', on ? 'true' : 'false');
-  });
-  document.querySelectorAll('.play-item').forEach(it => {
-    const key = it.dataset.play;
-    const active = state.plays[key];
-    it.querySelectorAll('.pill').forEach(p => {
-      const on = active === p.dataset.level;
-      setCls(p, 'active', on);
-      p.setAttribute('aria-checked', on ? 'true' : 'false');
-    });
-    it.hidden = state.playsOnly && !active;
-    const open = !!state.open[key];
-    const lab = it.querySelector('.play-label');
-    lab.setAttribute('aria-expanded', open ? 'true' : 'false');
-    lab.querySelector('.caret').textContent = open ? '▾' : '▸';
-    it.querySelector('.play-desc').hidden = !open;
-  });
-<!--PART43-->
+  calcSizeDiff();
+  const mode = state.mode;
+  const { text, errors, warnings } = buildPrompt(mode);
+  $('output').textContent = text;
+
+  const otherLen = buildPrompt(mode === 'full' ? 'compact' : 'full').text.length;
+  const len = text.length;
+  const delta = otherLen - len;
+  $('budget-len').textContent = len.toLocaleString() + ' 字符 · 约 ' + Math.round(len * 0.75).toLocaleString() + ' tokens（粗估）';
+  $('budget-diff').textContent = mode === 'compact'
+    ? '精简版 · 切到完整版约 ' + (delta > 0 ? '+' : '−') + Math.abs(delta).toLocaleString() + ' 字符'
+    : '完整版 · 切到精简版可省 ' + Math.max(0, -delta).toLocaleString() + ' 字符';
+
+  renderIssues(errors, warnings);
+  $('copy-btn').disabled = errors.length > 0;
+<!--PART44-->
