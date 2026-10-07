@@ -1,31 +1,41 @@
 
-  const lint = canon('lint', s.lint).filter(k => {
-    if (k === 'banned') return bannedList().length > 0;
-    if (k === 'sound') return !!s.sound;
-    if (k === 'coarse') return !!(s.vocabLock && s.toneBond);
-    if (k === 'senses') return senses.length > 0;
-    if (k === 'react') return !!s.react;
-    if (k === 'tags') return tags.length > 0;
-    return true;
+  CHARS.forEach(meta => {
+    const c = state[meta.key], g = c.gen, who = meta.cap;
+    const penFilled = g.plen || g.pgirth || g.pdesc || g.pform;
+    const vagFilled = g.vdepth || g.vaperture || g.vdesc || g.vtraits.length;
+    if (penFilled && !hasP(c)) warnings.push(`${who}：阴茎部分填了内容，但未勾选「阴茎 / 双性 / 多副」——不会写进 prompt。`);
+    if (vagFilled && !hasV(c)) warnings.push(`${who}：阴道部分填了内容，但未勾选「阴道 / 双性 / 多副」——不会写进 prompt。`);
+    if (g.types.includes('none') && (penFilled || vagFilled || g.orifices.length)) warnings.push(`${who}：已选「无生殖器」，但其他生殖字段仍有内容，将按「无」处理。`);
+    if (!isNH(c) && (g.pform || c.material || c.tent || c.tlen || c.tail)) warnings.push(`${who}：人外特征已填，但种族仍为「人形」——不会写进 prompt。`);
   });
-  if (lint.length) {
-    L.push('');
-    L.push(t(B('输出前对照以下各条检查，并在原地修掉：', 'Before you output, check the piece against these and fix it in place:')));
-    lint.forEach(k => L.push('- ' + lintLine(k)));
-  }
-  if (s.toneBond) L.push('\n' + t(B('下节「语气风格」若在措辞上暗示克制、抒情或优美，以本节为准：任何调性下用词都保持粗俗，只有动作层跟随调性。',
-    'Where the Voice & Tone section below suggests restraint, lyricism or prettiness in wording, this section overrides it: the register stays coarse in every tone. Only the action layer follows the tone.')));
-  return L;
-}
 
-/* mode 显式传入，不再偷改 state.mode 去测长度 —— 之前那版一旦 buildPrompt
-   中途抛错，state.mode 会卡在错误的值上再也回不来。 */
-function buildPrompt(modeOverride) {
-  const mode = modeOverride || state.mode;
-  const V = mode === 'full';
-  const errors = [], warnings = [];
-  let L = [];   // 以前是 const，末尾那句 L = [...] 会在空配置时抛
-                // "Assignment to constant variable"
-  const d = calcSizeDiff();
-  const o = state.obj, ac = state.after, pn = state.persona, st = state.style;
-<!--PART38-->
+  const degradesYou = hasAny(state.titlesYou, DEGRADE_TITLES);
+  const degradesThem = hasAny(state.titlesThem, DEGRADE_TITLES);
+  const degradingFrame = degradesYou || degradesThem || o.on;
+  const hasPersona = pn.name || pn.archetype || pn.voice.length || pn.attitude || pn.weak || pn.habit;
+  const heavy = Object.entries(state.plays).filter(([, lv]) => lv === 'hard' || lv === 'extreme');
+
+  if (ac.on && !ac.mode) errors.push('事后照料已开启，但没选程度。');
+  if (ac.on && !ac.parts.length) warnings.push('事后照料已开启但没勾具体内容——只写"做了收尾"模型会自由发挥。');
+  if (!ac.on && (heavy.length || o.on)) errors.push('已开启重档玩法或物化视角，但未开启事后照料。');
+  if (!ac.on && degradesYou && degradesThem) warnings.push('两侧都用了侮辱性称呼，建议开启事后照料。');
+  if (ac.on && state.safety.aftercare === 'off') errors.push('事后照料已单独开启，但下面的「收尾下限」设成了「不涉及」——两者矛盾。');
+  if (ac.on && state.safety.aftercare === 'offered') warnings.push('事后照料已单独开启，下面的下限仍允许被拒绝——以「事后照料」栏为准。');
+
+  if (o.on && !o.rung) errors.push('物化视角已开启，但没选层级。');
+  if (o.on && o.rung === 'prey' && !state.safety.safeword) errors.push('物化层级选了「猎物 Prey」——最彻底的一档，必须设置安全词。');
+  if (o.on && !hasAny(state.titlesYou, PLACE_TITLES) && !hasAny(state.titlesThem, PLACE_TITLES)) warnings.push('开启了物化视角但没选任何物品化称谓——物化的语言框架主要靠称呼承载。');
+  if (o.on && state.safety.aftercare === 'off') warnings.push('物化视角 + 收尾下限设为「不涉及」：去人格化的内容最需要收尾。');
+  if (degradesYou && degradesThem) warnings.push('两侧都选了侮辱性称呼——双向物化，请确认双方都清楚这属于合意范围。');
+  const degradePlays = ['Degradation', 'Name-calling', 'Humiliation'].filter(x => state.plays[x]).length;
+  if ((degradesYou || degradesThem) && !degradePlays && !o.on) warnings.push('选了侮辱性称谓但没勾选「贬低 / 辱骂称呼 / 羞辱」——称呼和描写方式最好保持一致。');
+  if (!pn.archetype && (pn.name || pn.voice.length)) warnings.push('设了名字或语气但没选性格原型——模型会自己补，容易每轮补得不一样。');
+  if (st.on) {
+    if (state.tone === 'poetic') warnings.push('文风规范要求禁止隐喻美化，但语气选了「诗性」——规范会覆盖语气的措辞部分，只有动作层跟随语气。');
+    if (st.senses.length < Number(st.minSenses || 2)) warnings.push(`勾选的感官（${st.senses.length}）少于要求的每段最少感官数（${st.minSenses}）。`);
+    if (st.scope.length && !state.safety.safeword) errors.push('勾选了玩法授权（场前授予），但未设置安全词。');
+    if (st.on && state.safety.aftercare === 'off') warnings.push('文风规范 + 收尾下限「不涉及」：感官密度越高，越需要收尾。');
+    const hits = lintBanned();
+    if (hits.length) warnings.push('你填写的文本里出现了禁词（若是刻意的否定写法可忽略）：' + hits.join('、'));
+  }
+<!--PART39-->
