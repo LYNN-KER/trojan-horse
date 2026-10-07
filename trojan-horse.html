@@ -1,51 +1,66 @@
 
-  <section id="sec-obj">
-    <h2>Objectification <span class="cn">· 物化（独立）</span></h2>
+  <section id="sec-style">
+    <h2>Style <span class="cn">· 文风规范</span></h2>
     <div class="notice">
-      <strong>物化不是强度，是视角框架。</strong>四档只管"做多重"；这一栏管的是"对方在你眼里还算不算人"。没有轻/中/重，只有开不开，以及关掉之后剩下的是什么。必须单独勾选。
+      <strong>这是一份可执行的写作契约，不是调性描述。</strong>它锁定器官词表、要求全程有声、规定感官密度、约束节奏，并可选叠加被动审美标签。与下面的「语气风格」不同：语气决定整体调性，这份决定具体怎么写。每一组都可单独关闭。
     </div>
     <div class="obj-head">
-      <span class="switch" id="obj-switch" role="switch" aria-checked="false" aria-label="开启物化视角" tabindex="0"></span>
-      <div class="obj-title">启用物化视角 <span class="cn">· Treat them as not-a-person</span></div>
+      <span class="switch" id="st-switch" role="switch" aria-checked="false" aria-label="启用文风规范" tabindex="0"></span>
+      <div class="obj-title">启用文风规范 <span class="cn">· 词汇锁定 · 声音 · 感官 · 节奏</span></div>
     </div>
-    <div class="obj-body" id="obj-body" hidden>
-      <p class="inline-note" style="margin-top:0">Rung <span style="font-family:var(--serif-cn)">· 层级</span>（单选，越往下越彻底）</p>
-      <div class="obj-ladder" id="obj-ladder" role="radiogroup" aria-label="物化层级"></div>
-      <p class="inline-note" style="margin-top:.9rem">Modifiers <span style="font-family:var(--serif-cn)">· 附加规则</span>（可多选）</p>
-      <div class="obj-flags chips" id="obj-flags" data-group="objFlags" data-multi="true" role="group" aria-label="物化附加规则"></div>
-      <div class="field" style="margin-top:.9rem">
-        <label>Notes <span style="font-family:var(--serif-cn)">· 物化细节</span></label>
-        <textarea class="obj-note" id="obj-note" placeholder="例：编号 07；不使用时靠墙右侧；坏了不修直接换。"></textarea>
-      </div>
-      <p class="inline-note" style="margin-bottom:0">物化框架不解除安全约束：安全词照常生效，模型永远不能代写您的反应。</p>
-    </div>
-  </section>
+    <div id="st-body" hidden>
 
-  <section id="sec-after">
-    <h2>Aftercare <span class="cn">· 事后照料（独立）</span></h2>
-    <div class="notice">
-      <strong>事后照料不是一个玩法，是一份承诺。</strong>它没有力度档位，只有"做到什么程度"。它也不该和扇耳光躺在同一个列表里被顺手勾掉——所以单独列在这里，单独开关。开重档玩法或物化视角而不开这一栏，会被拦下。
-    </div>
-    <div class="obj-head">
-      <span class="switch" id="ac-switch" role="switch" aria-checked="false" aria-label="启用事后照料" tabindex="0"></span>
-      <div class="obj-title">启用事后照料 <span class="cn">· What B does afterwards</span></div>
-    </div>
-    <div class="obj-body" id="ac-body" hidden>
-      <p class="inline-note" style="margin-top:0">Depth <span style="font-family:var(--serif-cn)">· 程度（单选）</span></p>
-      <div class="obj-ladder" id="ac-ladder" role="radiogroup" aria-label="事后照料程度"></div>
-      <p class="inline-note" style="margin-top:.9rem">Include <span style="font-family:var(--serif-cn)">· 具体做什么（可多选）</span></p>
-      <div class="chips sm" data-group="acParts" data-multi="true" role="group" aria-label="事后照料内容"></div>
-      <div class="mini-grid" style="margin-top:.8rem">
-        <div class="field">
-          <label>Timing <span style="font-family:var(--serif-cn)">· 时点</span></label>
-          <select id="ac-timing"></select>
+      <div class="sub-block st">
+        <h4>Vocabulary <span class="cn">· 词汇锁定</span></h4>
+        <div class="chips sm" style="margin-bottom:.7rem">
+          <span class="chip selected" role="button" tabindex="0" aria-pressed="true" data-group="stVocabLock" data-val="1">词表锁定（可关）</span>
+          <span class="chip axis-st selected" role="button" tabindex="0" aria-pressed="true" data-group="stToneBond" data-val="1">基调解绑：词汇永远粗俗</span>
         </div>
         <div class="field">
-          <label>Note <span style="font-family:var(--serif-cn)">· 补充</span></label>
-          <input type="text" class="st-text" id="ac-note" placeholder="例：结束后要先把被子盖好再说话" style="font-size:.88rem">
+          <label>强制词表（每行一组）<span style="font-family:var(--serif-cn)">· 可写「中文 | English」双语行</span></label>
+          <textarea class="st-text" id="st-vocab" rows="7" placeholder="外生殖器（男） | Male external&#10;词、词、词 | word, word, word"></textarea>
         </div>
+        <div class="field">
+          <label>禁词（逗号分隔）</label>
+          <input type="text" class="st-text" id="st-banned" style="font-size:.8rem">
+        </div>
+        <p class="inline-note" style="margin-bottom:0">按角色实际具备的结构选用，不要因为性别认同而回避或强加任何一类。器官就叫器官的名字。<br>写成「中文 | English」时，产出中文正文取左半、产出英文正文取右半；右半留空的那几行，英文正文里会标出来让模型自行补同等粗俗的说法。</p>
       </div>
-      <p class="inline-note" style="margin-bottom:0">不写"愧疚"也不写"教学"；不把它当奖励，也不允许角色拿它当借口跳过。角色可以冷淡、可以别扭，但事情要做。</p>
-    </div>
-  </section>
-<!--PART8-->
+
+      <div class="sub-block st">
+        <h4>Sound <span class="cn">· 声音系统</span></h4>
+        <div class="chips sm" style="margin-bottom:.7rem">
+          <span class="chip axis-st selected" role="button" tabindex="0" aria-pressed="true" data-group="stSound" data-val="1">全程不允许静音</span>
+        </div>
+        <div class="field">
+          <label>拟声词（逗号分隔）</label>
+          <input type="text" class="st-text" id="st-sounds" style="font-size:.8rem">
+        </div>
+        <p class="inline-note" style="margin-bottom:0">声音嵌入动作描写内部，不挂在句尾做标注。</p>
+      </div>
+
+      <div class="sub-block st">
+        <h4>Sensory <span class="cn">· 感官密度</span></h4>
+        <p class="inline-note" style="margin-top:0">多感官同步书写（可多选，输出时按此顺序排列）</p>
+        <div class="chips sm" data-group="stSenses" data-multi="true" role="group" aria-label="感官维度"></div>
+        <div class="mini-grid" style="margin-top:.7rem">
+          <div class="field">
+            <label>每段至少覆盖 <span style="font-family:var(--serif-cn)">· 最少感官数</span></label>
+            <select id="st-min"></select>
+          </div>
+          <div class="field">
+            <label>Real reactions <span style="font-family:var(--serif-cn)">· 真实身体反应</span></label>
+            <div class="chips sm" style="padding-top:.2rem">
+              <span class="chip axis-st selected" role="button" tabindex="0" aria-pressed="true" data-group="stReact" data-val="1">禁咆哮尖叫／反弓／昏迷</span>
+            </div>
+          </div>
+        </div>
+        <p class="inline-note" style="margin-bottom:0">身体反应用颤抖、失语、痉挛、潮红、呼吸断裂表达。</p>
+      </div>
+
+      <div class="sub-block st">
+        <h4>Aesthetic tags <span class="cn">· 被动审美标签</span></h4>
+        <p class="inline-note" style="margin-top:0">全面审美滤镜，被动生效。生成时只写入<b>行为要求</b>，不在正文中命名或解释这些标签。</p>
+        <div class="chips sm" data-group="stTags" data-multi="true" role="group" aria-label="审美标签"></div>
+      </div>
+<!--PART9-->
