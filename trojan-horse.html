@@ -1,48 +1,43 @@
 
-function handleClick(e) {
-  if (e.__thDone) return;
-  e.__thDone = true;
+document.addEventListener('keydown', e => {
   try {
-    const act = closestOf(e.target, '[data-action]');
-    if (act) return handleAction(act.dataset.action, act);
-    const cm = closestOf(e.target, '.common-chip');
-    if (cm) return toggleCommon(cm.dataset.common);
-    const pill = closestOf(e.target, '.pill');
-    if (pill) return togglePill(pill);
-    const chip = closestOf(e.target, '.chip');
-    if (chip) return toggleChip(chip);
-    const lab = closestOf(e.target, '.play-label');
-    if (lab) return toggleDesc(lab);
-    const lad = closestOf(e.target, '.ladder-row');
-    if (lad) return toggleLadder(lad);
-    const tc = closestOf(e.target, '.tone-chip');
-    if (tc) { state.tone = state.tone === tc.dataset.val ? '' : tc.dataset.val; return paint(); }
-    const sw = closestOf(e.target, '.switch');
-    if (sw) return toggleSwitch(sw);
-  } catch (err) { fatal(err); }
-}
-const CLICKABLE = '[data-action],.chip,.pill,.common-chip,.tone-chip,.switch,.ladder-row,.play-label';
-function bindInteractive(root) {
-  const scope = root || document;
-  let n = 0;
-  if (scope.querySelectorAll) {
-    const list = scope.querySelectorAll(CLICKABLE);
-    for (let i = 0; i < list.length; i++) {
-      const el = list[i];
-      if (el.__thBound) continue;
-      el.__thBound = true;
-      el.addEventListener('click', handleClick);
-      n++;
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); return copyOutput($('copy-btn')); }
+    if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); return setAllOpen(true); }
+    const lad = e.target.closest && e.target.closest('.ladder-row');
+    if (lad && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      e.preventDefault();
+      const rows = Array.prototype.slice.call(e.target.closest('.obj-ladder').querySelectorAll('.ladder-row'));
+      const i = rows.indexOf(lad);
+      rows[(i + (e.key === 'ArrowDown' ? 1 : rows.length - 1)) % rows.length].focus();
+      return;
     }
-  }
-  if (scope.nodeType === 1 && !scope.__thBound && typeof scope.matches === 'function' && scope.matches(CLICKABLE)) {
-    scope.__thBound = true;
-    scope.addEventListener('click', handleClick);
-    n++;
-  }
-  return n;
-}
-/* 两条兜底通道在脚本刚跑到这里时就挂上，哪怕后面的初始化炸了也还在。 */
-document.addEventListener('click', handleClick);
-window.addEventListener('click', handleClick, true);
-<!--PART46-->
+    const pill = e.target.closest && e.target.closest('.pill');
+    if (pill) {
+      const items = Array.prototype.slice.call(pill.parentElement.querySelectorAll('.pill'));
+      const i = items.indexOf(pill);
+      let ni = null;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') ni = (i + 1) % items.length;
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') ni = (i - 1 + items.length) % items.length;
+      else if (e.key === 'Home') ni = 0;
+      else if (e.key === 'End') ni = items.length - 1;
+      if (ni !== null) { e.preventDefault(); items.forEach((el, j) => { el.tabIndex = j === ni ? 0 : -1; }); items[ni].focus(); }
+      return;
+    }
+    const t = e.target.closest && e.target.closest('.chip, .tone-chip, .switch, .play-label, .ladder-row, .common-chip');
+    if (t && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); t.click(); }
+  } catch (err) { fatal(err); }
+});
+
+let inputQueued = false;
+const onFormInput = e => {
+  if (!e.target.matches('input, select, textarea')) return;
+  try {
+    sync();
+    if (inputQueued) return;
+    inputQueued = true;
+    requestAnimationFrame(() => { inputQueued = false; paint(); });
+  } catch (err) { fatal(err); }
+};
+document.addEventListener('input', onFormInput);
+document.addEventListener('change', onFormInput);
+<!--PART47-->
