@@ -198,7 +198,7 @@
   .scenario { display: flex; align-items: flex-start; gap: .8rem; padding: .7rem 0; border-bottom: 1px dashed var(--border); }
   .scenario:last-child { border-bottom: none; }
   .switch { flex: 0 0 auto; margin-top: .3rem; width: 34px; height: 18px; border-radius: 9px; background: var(--card); border: 1px solid var(--border); position: relative; cursor: pointer; transition: all .2s; -webkit-tap-highlight-color: transparent; }
-  .switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--muted); transition: all .2s; };
+  .switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--muted); transition: all .2s; }
   .switch[aria-checked="true"] { background: var(--danger); border-color: var(--danger); }
   .switch[aria-checked="true"]::after { left: 18px; background: #fff; }
   .scenario-body { flex: 1; }
@@ -949,4 +949,62 @@ const ST_TAGS = [
   ['unaware', '无自觉诱惑', 'Unconscious allure. A\'s attractiveness is entirely passive — an exposed line of the body, a facial expression, a posture — none of it staged. A never registers being looked at in that way and never offers, poses, or displays. Do not write A as aware of their own appeal, and do not narrate their own seductiveness to them.'],
   ['pure', '纯欲同屏', 'Innocence and desire are the same temperament, not two modes. The same voice can say "I want strawberries" and "I want you inside me". Do not use contrast constructions such as "only moments ago she was... and now...". Any contradiction exists only in an observer\'s perception; A is entirely consistent with themself.'],
 ];
-<!--PART6-->
+
+const ST_TALK = [
+  ['order', '命令式 Order', '"张嘴。" "把腿分开。" "夹紧。"'],
+  ['press', '逼供式 Pressing', '"说，谁把你操成这样的。" "喜不喜欢，自己说。"'],
+  ['own', '所有权 Ownership', '"这个穴是谁的。" "里面灌满了谁的东西。"'],
+  ['shame', '羞辱式 Humiliating', '"骚货，又湿了。" "当内便器舒不舒服。"'],
+  ['threat', '威胁夸赞 Threat-praise', '"就这么紧，再夹就操烂你。" "里面好会吸，是不是欠干。"'],
+];
+const ST_TALK_EN = {
+  order: 'commands — short imperatives, no explanation: "Open your mouth." "Spread your legs." "Tighten."',
+  press: 'pressing for a confession — demand that A say it out loud, and make A supply the words, not you: "Say who did this to you." "Do you like it. Say it."',
+  own: 'ownership — mark A as B\'s property in the wording itself: "Whose hole is this." "Whose is filling it."',
+  shame: 'humiliating pet names, delivered as endearment: "Slut, you\'re wet again." "How is it, being a toilet for me."',
+  threat: 'threats fused with praise — the praise is the threat: "So tight. Squeeze again and I\'ll use you until you break." "You grip so well inside. Do you owe it a filling."',
+};
+
+const ST_SCOPE = [
+  ['train', '调教与支配'], ['orgasmctl', '高潮控制与强制高潮'], ['edge', 'edging 与寸止'],
+  ['incontinence', '失禁与体内射尿'], ['urethral', '尿道开发'], ['multi', '双穴与多穴同时开发'],
+  ['nipple', '乳首开发与产乳'], ['wastectl', '排泄控制'], ['objectify', '物化使用'],
+  ['publicnude', '公共场合隐秘裸露'], ['toys', '道具调教'], ['sensory', '感官剥夺与束缚'],
+  ['species', '异种'],
+];
+
+const ST_STAGES = [
+  ['foreplay', '前戏与脱衣'], ['insert', '插入'], ['stroke', '抽插'],
+  ['climax', '高潮'], ['after', '后戏'],
+];
+const ST_STAGE_EN = {
+  foreplay: 'undressing, foreplay', insert: 'penetration', stroke: 'thrusting',
+  climax: 'orgasm', after: 'aftercare',
+};
+
+const ST_LINT = [
+  ['banned', '是否出现禁词？'], ['sound', '是否全程有声音描写？'],
+  ['coarse', '词汇是否因温柔而变文雅？'], ['senses', '是否覆盖足够感官？'],
+  ['react', '是否出现夸张反应？'], ['tags', '标签是否被正文命名？'],
+];
+const ST_LINT_EN = {
+  banned: 'Did any banned euphemism slip in? Replace it with the locked vocabulary.',
+  sound: 'Is there sound in every passage? Add onomatopoeia inside the action, not at the end of a sentence.',
+  coarse: 'Has the vocabulary softened because the scene is gentle? Put the coarse terms back.',
+  senses: 'Does this passage carry at least the minimum number of sensory channels?',
+  react: 'Any screaming, arching, or fainting? Replace with real body response: trembling, speechlessness, spasm, flush, broken breath.',
+  tags: 'Have any of the standing qualities above been named or explained in the prose? Remove the name, keep the behaviour.',
+};
+
+const ST_PERSON = [['second', '第二人称 你'], ['third', '第三人称']];
+const ST_LENGTH = [
+  ['brief', '简短：两三句，最多一段'],
+  ['medium', '中等：一到两段'],
+  ['long', '充分：可写完一个阶段，但不跳阶段'],
+];
+const ST_LENGTH_EN = {
+  brief: 'Two or three sentences, at most one paragraph. Advance the act only a little.',
+  medium: 'One or two paragraphs. Stay inside the current stage.',
+  long: 'A full passage within the current stage. Never skip ahead to a later stage in the same reply.',
+};
+<!--PART7-->
