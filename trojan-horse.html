@@ -225,7 +225,7 @@
   .copy-btn.copied { background: var(--l-soft); }
   [data-theme="dark"] .copy-btn.copied { color: #121110; }
   .copy-btn:disabled { opacity: .4; cursor: not-allowed; }
-  .share-out { width: 100%; margin-top: .5rem; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .7rem; color: var(--muted); background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: .5rem; word-break: break-all; }
+  .share-out { width: 100%; margin-top: .5rem; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .7rem; color: var(--muted); background: var(--bg); border: 1px border; border-color: var(--border); border-radius: var(--radius); padding: .5rem; word-break: break-all; }
 
   @media (max-width: 640px) {
     .body-grid { grid-template-columns: 1fr; }
@@ -954,7 +954,7 @@ const ST_TALK = [
   ['order', '命令式 Order', '"张嘴。" "把腿分开。" "夹紧。"'],
   ['press', '逼供式 Pressing', '"说，谁把你操成这样的。" "喜不喜欢，自己说。"'],
   ['own', '所有权 Ownership', '"这个穴是谁的。" "里面灌满了谁的东西。"'],
-  ['shame', '羞辱式 Humiliating', '"骚货，又湿了。" "当内便器舒舒服服。"'],
+  ['shame', '羞辱式 Humiliating', '"骚货，又湿了。" "当内便器舒不舒服。"'],
   ['threat', '威胁夸赞 Threat-praise', '"就这么紧，再夹就操烂你。" "里面好会吸，是不是欠干。"'],
 ];
 const ST_TALK_EN = {
@@ -1675,4 +1675,121 @@ function toggleCommon(en) {
   if (state.playsMode !== 'pick') state.playsMode = 'pick';
   paint();
 }
-<!--PART17-->
+
+function toggleChip(chip) {
+  const g = chip.dataset.group, val = chip.dataset.val;
+  if (BOOL_GROUPS[g]) { state.style[BOOL_GROUPS[g]] = !state.style[BOOL_GROUPS[g]]; return paint(); }
+  const strg = STRING_GROUPS[g];
+  if (strg) {
+    const cur = strg.get();
+    if (STICKY_RADIO.has(g) && cur === val) return;
+    strg.set(cur === val ? '' : val);
+    return paint();
+  }
+  const getArr = ARRAY_GROUPS[g];
+  if (!getArr) throw new Error('未知的 chip 组：' + g);
+  const arr = getArr();
+  const i = arr.indexOf(val);
+  if (i >= 0) { arr.splice(i, 1); return paint(); }
+  if (g === 'titlesYou' || g === 'titlesThem') {
+    if (val === '无称谓 No title') { arr.length = 0; arr.push(val); return paint(); }
+    const axis = chip.dataset.axis;
+    for (let k = arr.length - 1; k >= 0; k--) {
+      const tt = TITLES.find(x => x.en === arr[k]);
+      if (tt && tt.axis === axis) arr.splice(k, 1);
+    }
+    arr.push(val);
+    return paint();
+  }
+  if (g === 'acParts') { arr.push(val); return paint(); }
+  const isGType = g === 'gTypesYou' || g === 'gTypesThem';
+  if (isGType && val === 'none') { arr.length = 0; arr.push('none'); }
+  else {
+    if (isGType) { const n = arr.indexOf('none'); if (n >= 0) arr.splice(n, 1); }
+    arr.push(val);
+  }
+  paint();
+}
+
+function toggleLadder(row) {
+  const which = row.dataset.ladder;
+  const setter = which === 'after' ? STRING_GROUPS.acMode : STRING_GROUPS.objRung;
+  setter.set(setter.get() === row.dataset.val ? '' : row.dataset.val);
+  paint();
+}
+
+function togglePill(pill) {
+  const play = pill.dataset.play, level = pill.dataset.level;
+  if (state.plays[play] === level) delete state.plays[play];
+  else state.plays[play] = level;
+  paint();
+}
+function toggleDesc(label) {
+  const key = label.closest('.play-item').dataset.play;
+  state.open[key] = !state.open[key];
+  paint();
+}
+function toggleSwitch(sw) {
+  if (sw.id === 'obj-switch') { state.obj.on = !state.obj.on; return paint(); }
+  if (sw.id === 'ac-switch') { state.after.on = !state.after.on; return paint(); }
+  if (sw.id === 'st-switch') { state.style.on = !state.style.on; return paint(); }
+  const key = sw.closest('.scenario').dataset.key;
+  const cur = state.scenarios[key];
+  // 关掉开关 ≠ 扔掉写好的成立条件。呼吸控制、非人认知这类文本是全文最不该
+  // 被一次误触清空的东西，所以这里只翻 on，note 一律留着。
+  if (!cur) state.scenarios[key] = { on: true, note: '' };
+  else cur.on = !cur.on;
+  paint();
+}
+function setAllOpen(v) {
+  document.querySelectorAll('.pg').forEach(d => { d.open = v; });
+  PLAYS.forEach(g => g.items.forEach(it => { state.open[it.en] = v; }));
+  paint();
+}
+
+async function handleAction(a, el) {
+  // async 函数里的同步异常，外层 click handler 的 try/catch 抓不到——会被转成
+  // rejected promise。所以必须在这里自己接住，否则按钮会「按不动且毫无提示」。
+  try {
+    if (a === 'theme') { state.theme = state.theme === 'dark' ? 'light' : 'dark'; return paint(); }
+    if (a === 'lang') { state.lang = state.lang === 'cn' ? 'en' : 'cn'; return paint(); }
+    if (a === 'diag') return runDiag();
+    if (a === 'mode') { state.mode = el.dataset.val; return paint(); }
+    if (a === 'playsMode') { state.playsMode = el.dataset.val; return paint(); }
+    if (a === 'commonAll') { COMMON.forEach(c => { if (!state.plays[c.en]) state.plays[c.en] = c.lv; }); state.playsMode = 'pick'; return paint(); }
+    if (a === 'commonNone') { COMMON.forEach(c => { delete state.plays[c.en]; }); return paint(); }
+    if (a === 'clearPlays') { state.plays = {}; return paint(); }
+    if (a === 'expandAll') return setAllOpen(true);
+    if (a === 'collapseAll') return setAllOpen(false);
+    if (a === 'exportFile') return exportFile();
+    if (a === 'importFile') return $('import-file').click();
+    if (a === 'copyJson') {
+      const json = JSON.stringify(state, null, 2);
+      if (await copyText(json)) { hideReveal(); toast('配置已复制到剪贴板'); }
+      else revealText(json);
+      return;
+    }
+    if (a === 'copy') return await copyOutput(el);
+    if (a === 'reset') { if (confirm('清空所有已填参数？此操作不可撤销。')) { resetState(); hydrate(); paint(); } return; }
+    if (a === 'prefill') return prefill();
+    if (a === 'gate-enter') return closeGate($('gate-remember').checked);
+    if (a === 'gate-exit') return leaveApp();
+    if (a === 'gate-open') return openGate();
+  } catch (err) { fatal(err); }
+}
+
+let toastTimer = null;
+function toast(msg) {
+  let el = $('toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toast';
+    el.style.cssText = 'position:fixed;left:50%;bottom:2rem;transform:translateX(-50%);z-index:1000;background:var(--fg);color:var(--bg);padding:.6rem 1.1rem;border-radius:2px;font-size:.82rem;max-width:90vw;text-align:center;';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.display = 'block';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.style.display = 'none'; }, 2000);
+}
+<!--PART18-->
