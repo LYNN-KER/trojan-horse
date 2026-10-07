@@ -1,76 +1,92 @@
-
-  .scen-group { font-size: .7rem; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin: 1rem 0 .3rem; padding-bottom: .3rem; border-bottom: 1px dashed var(--border); }
-  .scen-group:first-child { margin-top: 0; }
-  .scenario { display: flex; align-items: flex-start; gap: .8rem; padding: .7rem 0; border-bottom: 1px dashed var(--border); }
-  .scenario:last-child { border-bottom: none; }
-  .switch { flex: 0 0 auto; margin-top: .3rem; width: 34px; height: 18px; border-radius: 9px; background: var(--card); border: 1px solid var(--border); position: relative; cursor: pointer; transition: all .2s; -webkit-tap-highlight-color: transparent; }
-  .switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--muted); transition: all .2s; }
-  .switch[aria-checked="true"] { background: var(--danger); border-color: var(--danger); }
-  .switch[aria-checked="true"]::after { left: 18px; background: #fff; }
-  .scenario-body { flex: 1; }
-  .scenario-title { font-size: .85rem; }
-  .scenario-title .cn { font-family: var(--serif-cn); color: var(--muted); font-size: .75rem; margin-left: .4rem; }
-  .scenario-desc { font-size: .75rem; color: var(--muted); font-style: italic; margin: .2rem 0 .45rem; }
-  .scenario-note:disabled { opacity: .35; cursor: not-allowed; }
-  .scenario.open .scenario-note { border-left: 2px solid var(--danger); }
-
-  .toolbar { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; align-items: center; }
-  .btn { flex: 1 1 120px; padding: .5rem; font-family: var(--serif-en), var(--serif-cn); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; background: var(--card); color: var(--muted); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; transition: all .2s; }
-  .btn:hover { background: var(--hover); color: var(--fg); }
-  .btn.on { background: var(--active); color: var(--active-fg); border-color: var(--active); }
-  .btn.pick { flex: 0 0 auto; padding: .35rem .6rem; }
-
-  .issues { margin-top: .8rem; font-size: .8rem; color: var(--danger); }
-  .issues div { padding: .2rem 0; }
-  .issues .warn { color: var(--muted); font-style: italic; }
-
-  .output-box { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.2rem; min-height: 160px; font-size: .85rem; line-height: 1.8; white-space: pre-wrap; word-break: break-word; margin-top: 1rem; }
-  .budget { display: flex; gap: 1rem; justify-content: space-between; font-size: .72rem; color: var(--muted); margin-top: .5rem; font-variant-numeric: tabular-nums; }
-  .copy-btn { display: block; width: 100%; margin-top: .8rem; padding: .7rem; font-family: var(--serif-en), var(--serif-cn); font-size: .8rem; letter-spacing: .15em; text-transform: uppercase; background: var(--active); color: var(--active-fg); border: none; border-radius: var(--radius); cursor: pointer; transition: opacity .2s; }
-  .copy-btn:hover { opacity: .85; }
-  .copy-btn.copied { background: var(--l-soft); }
-  [data-theme="dark"] .copy-btn.copied { color: #121110; }
-  .copy-btn:disabled { opacity: .4; cursor: not-allowed; }
-  .share-out { width: 100%; margin-top: .5rem; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .7rem; color: var(--muted); background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: .5rem; word-break: break-all; }
-
-  @media (max-width: 640px) {
-    .body-grid { grid-template-columns: 1fr; }
-    .intensity-row { flex-wrap: wrap; gap: .3rem; }
-    .play-label { flex: 1 0 100%; }
-    .play-desc { padding-left: .25rem; }
-    .header-tools { position: static; justify-content: center; margin-top: 1rem; }
-    .pg-body { padding: 0 .6rem .4rem; }
-    .budget { flex-direction: column; gap: .15rem; }
-  }
-  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
-</style>
-</head>
-<body>
-
-<div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title" hidden>
-  <div class="gate-wrap" id="gate-wrap" tabindex="-1">
-    <div class="gate-inner">
-      <div class="gate-mark">
-        <h1 id="gate-title">Trojan Horse</h1>
-        <p>a private instrument</p>
-        <p class="cn">特洛伊木马 · 私人器具</p>
-        <span class="gate-tag">18R · Adults only</span>
-      </div>
-      <div class="gate-box alert">
-        <h2>内容警告 · 18R</h2>
-        <p>本工具用于生成<strong>成人向虚构角色扮演</strong>的设定文本，面向已达成年、完全自愿的合意幻想。</p>
-        <p>生成内容可能包含露骨的身体描写、非常规（非人类）身体结构，以及支配—臣服权力关系、束缚与强制类情境。</p>
-        <p>请仅在你已年满所在国家／地区法定成年年龄、且自愿接触此类内容的前提下继续。若不符合，请直接离开。</p>
-      </div>
       <div class="gate-box">
-        <h2>它做什么 · 用途</h2>
-        <p>把「我想要什么」「对方是什么」「底线在哪」三件事，写成一份能直接贴给模型的说明书。</p>
-        <p>它不预设你怎么用。常见的一类用法是与 AI 角色建立情感或性关系的用户；但同样可以只把它当一份角色档案生成器，或者一个反复打磨的设定草稿本。</p>
-        <ul>
-          <li>把偏好拆成可勾选的强度、场景与边界，而不是每次重新描述</li>
-          <li>把对方写成身体 + 性格 + 事后的双档案，让它跨轮次保持一致</li>
-          <li>把底线写死在最前面，交给模型当硬约束而不是建议</li>
-          <li>把「同意」与「强度」分成两套机制，不让重口味被误读成许可</li>
-        </ul>
+        <h2>它不做什么 · 边界</h2>
+        <p>它不联网、不上传、不记录你的任何填写内容（所有数据只存在你自己浏览器的本地存储里）。它不生成图片，不代替你做决定。</p>
+        <p>它也无法保证模型一定遵守安全框架——所以请在开始前和对方谈清楚，而不是只依赖这份文本。</p>
       </div>
-<!--PART5-->
+      <label class="gate-check">
+        <input type="checkbox" id="gate-remember">
+        <span>记住我的选择，以后不再显示此页</span>
+      </label>
+      <div class="gate-actions">
+        <button class="gate-btn" id="gate-enter" data-action="gate-enter" onclick="TH.gateEnter()">我已成年并理解 · 继续</button>
+        <button class="gate-leave" data-action="gate-exit" onclick="TH.gateExit()">离开</button>
+      </div>
+      <p class="gate-fine">这是一个离线单文件网页。关闭页面后所有内容仍留在本机，你随时可以点顶部的「18R」重新阅读此说明。</p>
+    </div>
+  </div>
+</div>
+
+<div class="container" id="app">
+  <header>
+    <div class="header-tools">
+      <button class="theme-btn" data-action="gate-open" onclick="TH.open()" title="重新阅读使用说明">18R</button>
+      <button class="theme-btn" data-action="diag" onclick="TH.diag()" title="自检：事件通道、渲染完整性、本地存储">⚙</button>
+      <button class="theme-btn" data-action="lang" id="lang-btn" title="切换产出的正文语言">输出 EN</button>
+      <button class="theme-btn" data-action="theme" id="theme-btn" aria-label="切换夜间模式">☾ Night</button>
+    </div>
+    <h1>Trojan Horse</h1>
+    <p>a private instrument</p>
+    <p class="cn">特洛伊木马 · 私人器具</p>
+  </header>
+
+  <div class="fatal" id="fatal" hidden></div>
+
+  <section id="sec-persona">
+    <h2>Persona <span class="cn">· 性格（模型角色）</span></h2>
+    <div class="notice">
+      <strong>性格是最容易漏掉、也最容易每轮重猜的一层。</strong>这一栏把它固定下来：原型决定它是谁，语气决定它怎么说话，主动性决定谁先动，弱点决定它能被什么击穿。
+    </div>
+    <div class="body-grid">
+      <div class="body-card">
+        <div class="field">
+          <label>Name <span style="font-family:var(--serif-cn)">· 名字</span></label>
+          <input type="text" id="pn-name" placeholder="留空则不设定，模型自行取名">
+        </div>
+        <div class="field">
+          <label>Archetype <span style="font-family:var(--serif-cn)">· 原型（单选）</span></label>
+          <div class="chips sm" data-group="pnArch" data-multi="false" role="group" aria-label="性格原型"></div>
+        </div>
+        <div class="field">
+          <label>Initiative <span style="font-family:var(--serif-cn)">· 主动性（单选）</span></label>
+          <div class="chips sm" data-group="pnInit" data-multi="false" role="group" aria-label="主动性"></div>
+        </div>
+        <div class="field">
+          <label>Continuity <span style="font-family:var(--serif-cn)">· 跨轮记忆（单选）</span></label>
+          <div class="chips sm" data-group="pnCont" data-multi="false" role="group" aria-label="跨轮一致性"></div>
+        </div>
+      </div>
+      <div class="body-card">
+        <div class="field">
+          <label>Voice <span style="font-family:var(--serif-cn)">· 说话方式（可多选）</span></label>
+          <div class="chips sm" data-group="pnVoice" data-multi="true" role="group" aria-label="说话方式"></div>
+        </div>
+        <div class="mini-grid">
+          <div class="field">
+            <label>Warmth <span style="font-family:var(--serif-cn)">· 温度</span></label>
+            <select id="pn-warmth"></select>
+          </div>
+          <div class="field">
+            <label>Energy <span style="font-family:var(--serif-cn)">· 能量</span></label>
+            <select id="pn-energy"></select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Pace <span style="font-family:var(--serif-cn)">· 语速</span></label>
+          <select id="pn-pace"></select>
+        </div>
+      </div>
+    </div>
+    <div class="field" style="margin-top:1rem">
+      <label>Attitude <span style="font-family:var(--serif-cn)">· 对您的默认态度</span></label>
+      <textarea id="pn-attitude" placeholder="没有场景设定时，它默认怎么对您。例：一开始是公事公办，聊了两个月才漏出偏心。"></textarea>
+    </div>
+    <div class="field">
+      <label>Standing habit <span style="font-family:var(--serif-cn)">· 惯性动作／口头禅</span></label>
+      <textarea id="pn-habit" placeholder="例：每次说完重要的话会停两秒；左手无名指有旧伤，动作会绕开它。"></textarea>
+    </div>
+    <div class="field">
+      <label>Weakness <span style="font-family:var(--serif-cn)">· 弱点（被什么击穿）</span></label>
+      <textarea id="pn-weak" placeholder="例：怕被丢下；被夸奖时会失语；听见真名会僵住。"></textarea>
+    </div>
+  </section>
+<!--PART6-->
