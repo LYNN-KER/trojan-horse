@@ -1,63 +1,76 @@
 
-  .common-box { border: 1px solid var(--border); background: var(--card); border-radius: var(--radius); padding: .9rem 1rem; margin-top: .8rem; }
-  .common-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; margin-bottom: .65rem; }
-  .common-name { font-size: .7rem; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); }
-  .common-name .n { font-family: var(--serif-cn); letter-spacing: .06em; color: var(--muted); font-weight: 400; }
-  .common-list { display: flex; flex-wrap: wrap; gap: .4rem; }
-  .common-chip {
-    font-family: var(--serif-en), var(--serif-cn); font-size: .78rem;
-    padding: .3rem .6rem; border: 1px solid var(--border); border-radius: var(--radius);
-    background: var(--bg); color: var(--muted); cursor: pointer; transition: all .18s;
-    user-select: none; -webkit-tap-highlight-color: transparent;
+  .scen-group { font-size: .7rem; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin: 1rem 0 .3rem; padding-bottom: .3rem; border-bottom: 1px dashed var(--border); }
+  .scen-group:first-child { margin-top: 0; }
+  .scenario { display: flex; align-items: flex-start; gap: .8rem; padding: .7rem 0; border-bottom: 1px dashed var(--border); }
+  .scenario:last-child { border-bottom: none; }
+  .switch { flex: 0 0 auto; margin-top: .3rem; width: 34px; height: 18px; border-radius: 9px; background: var(--card); border: 1px solid var(--border); position: relative; cursor: pointer; transition: all .2s; -webkit-tap-highlight-color: transparent; }
+  .switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--muted); transition: all .2s; }
+  .switch[aria-checked="true"] { background: var(--danger); border-color: var(--danger); }
+  .switch[aria-checked="true"]::after { left: 18px; background: #fff; }
+  .scenario-body { flex: 1; }
+  .scenario-title { font-size: .85rem; }
+  .scenario-title .cn { font-family: var(--serif-cn); color: var(--muted); font-size: .75rem; margin-left: .4rem; }
+  .scenario-desc { font-size: .75rem; color: var(--muted); font-style: italic; margin: .2rem 0 .45rem; }
+  .scenario-note:disabled { opacity: .35; cursor: not-allowed; }
+  .scenario.open .scenario-note { border-left: 2px solid var(--danger); }
+
+  .toolbar { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; align-items: center; }
+  .btn { flex: 1 1 120px; padding: .5rem; font-family: var(--serif-en), var(--serif-cn); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; background: var(--card); color: var(--muted); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; transition: all .2s; }
+  .btn:hover { background: var(--hover); color: var(--fg); }
+  .btn.on { background: var(--active); color: var(--active-fg); border-color: var(--active); }
+  .btn.pick { flex: 0 0 auto; padding: .35rem .6rem; }
+
+  .issues { margin-top: .8rem; font-size: .8rem; color: var(--danger); }
+  .issues div { padding: .2rem 0; }
+  .issues .warn { color: var(--muted); font-style: italic; }
+
+  .output-box { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.2rem; min-height: 160px; font-size: .85rem; line-height: 1.8; white-space: pre-wrap; word-break: break-word; margin-top: 1rem; }
+  .budget { display: flex; gap: 1rem; justify-content: space-between; font-size: .72rem; color: var(--muted); margin-top: .5rem; font-variant-numeric: tabular-nums; }
+  .copy-btn { display: block; width: 100%; margin-top: .8rem; padding: .7rem; font-family: var(--serif-en), var(--serif-cn); font-size: .8rem; letter-spacing: .15em; text-transform: uppercase; background: var(--active); color: var(--active-fg); border: none; border-radius: var(--radius); cursor: pointer; transition: opacity .2s; }
+  .copy-btn:hover { opacity: .85; }
+  .copy-btn.copied { background: var(--l-soft); }
+  [data-theme="dark"] .copy-btn.copied { color: #121110; }
+  .copy-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .share-out { width: 100%; margin-top: .5rem; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .7rem; color: var(--muted); background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: .5rem; word-break: break-all; }
+
+  @media (max-width: 640px) {
+    .body-grid { grid-template-columns: 1fr; }
+    .intensity-row { flex-wrap: wrap; gap: .3rem; }
+    .play-label { flex: 1 0 100%; }
+    .play-desc { padding-left: .25rem; }
+    .header-tools { position: static; justify-content: center; margin-top: 1rem; }
+    .pg-body { padding: 0 .6rem .4rem; }
+    .budget { flex-direction: column; gap: .15rem; }
   }
-  .common-chip:hover { background: var(--hover); color: var(--fg); }
-  .common-chip.on { background: var(--active); color: var(--active-fg); border-color: var(--active); }
-  .common-chip .lv { font-size: .62rem; opacity: .65; margin-left: .3rem; letter-spacing: .05em; }
-  .common-chip.on .lv { opacity: .9; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
 
-  .pg { border: 1px solid var(--border); background: var(--card); border-radius: var(--radius); margin-bottom: .7rem; }
-  .pg > summary { list-style: none; cursor: pointer; padding: .6rem .8rem; display: flex; align-items: center; justify-content: space-between; gap: .5rem; border-radius: var(--radius); }
-  .pg > summary::-webkit-details-marker { display: none; }
-  .pg > summary:hover { background: var(--hover); }
-  .pg-name { font-size: .78rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
-  .pg-count { font-size: .7rem; color: var(--muted); }
-  .pg-body { padding: 0 .8rem .5rem; }
-
-  .play-item { margin-bottom: .35rem; }
-  .intensity-row { display: flex; align-items: center; gap: .8rem; padding: .3rem 0; }
-  .play-label { flex: 0 0 168px; font-size: .85rem; cursor: pointer; border-radius: var(--radius); padding: .1rem .25rem; transition: background .2s; }
-  .play-label:hover { background: var(--hover); }
-  .play-label .cn { font-family: var(--serif-cn); color: var(--muted); font-size: .75rem; margin-left: .3rem; }
-  .play-label .caret { color: var(--muted); font-size: .7rem; margin-left: .35rem; }
-  .play-label .info { display: inline-block; min-width: 1.1em; margin-left: .4rem; font-size: .62rem; line-height: 1.1; text-align: center; font-style: italic; color: var(--muted); border: 1px solid var(--border); border-radius: 50%; transition: all .2s; }
-  .play-label:hover .info, .play-label[aria-expanded="true"] .info { color: var(--active-fg); background: var(--accent); border-color: var(--accent); }
-  .badge { display: inline-block; min-width: 1.2em; text-align: center; font-style: italic; color: var(--accent); border: 1px solid var(--warn-bd); border-radius: 50%; padding: 0 .15rem; }
-  .play-desc { font-size: .76rem; color: var(--muted); line-height: 1.6; padding: .1rem .25rem .5rem 12.4rem; }
-  .intensity-pills { display: flex; gap: .25rem; }
-  .pill { font-family: var(--serif-en), var(--serif-cn); font-size: .7rem; padding: .2rem .55rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); color: var(--muted); cursor: pointer; transition: all .2s; user-select: none; -webkit-tap-highlight-color: transparent; }
-  .pill:hover { background: var(--hover); }
-  .pill.p-soft.active { background: var(--l-soft); color: #fff; border-color: var(--l-soft); }
-  .pill.p-med.active { background: var(--l-med); color: #fff; border-color: var(--l-med); }
-  .pill.p-hard.active { background: var(--l-hard); color: #fff; border-color: var(--l-hard); }
-  .pill.p-extreme.active { background: var(--l-ext); color: #fff; border-color: var(--l-ext); }
-  [data-theme="dark"] .pill.active { color: #121110; }
-
-  .to-output { display: inline-block; margin-top: .8rem; font-size: .78rem; color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--border); }
-  .notice { background: var(--warn-bg); border: 1px solid var(--warn-bd); border-radius: var(--radius); padding: .8rem 1rem; font-size: .8rem; color: var(--muted); margin: 1rem 0 1.2rem; }
-  .notice strong { color: var(--danger); font-weight: 600; }
-
-  .obj-head { display: flex; align-items: center; gap: .8rem; padding: .7rem 0; }
-  .obj-title { flex: 1; font-size: .9rem; }
-  .obj-title .cn { font-family: var(--serif-cn); color: var(--muted); font-size: .78rem; margin-left: .4rem; }
-  .obj-body { border: 1px solid var(--warn-bd); background: var(--warn-bg); border-radius: var(--radius); padding: 1rem 1.1rem; }
-  .obj-ladder { display: grid; gap: .35rem; }
-  .ladder-row { display: flex; align-items: flex-start; gap: .6rem; padding: .45rem .55rem; border: 1px solid var(--border); background: var(--card); border-radius: var(--radius); cursor: pointer; transition: all .2s; }
-  .ladder-row:hover { background: var(--hover); }
-  .ladder-row.selected { border-color: var(--danger); box-shadow: inset 0 0 0 1px var(--danger); }
-  .ladder-dot { flex: 0 0 auto; width: 11px; height: 11px; border-radius: 50%; border: 1px solid var(--danger); margin-top: .4rem; }
-  .ladder-row.selected .ladder-dot { background: var(--danger); }
-  .ladder-name { font-size: .85rem; }
-  .ladder-name .cn { font-family: var(--serif-cn); color: var(--muted); font-size: .75rem; margin-left: .3rem; }
-  .ladder-desc { display: block; font-size: .73rem; color: var(--muted); line-height: 1.5; margin-top: .1rem; }
-  .obj-flags, .st-flags { display: flex; flex-wrap: wrap; gap: .4rem; }
-<!--PART4-->
+<div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title" hidden>
+  <div class="gate-wrap" id="gate-wrap" tabindex="-1">
+    <div class="gate-inner">
+      <div class="gate-mark">
+        <h1 id="gate-title">Trojan Horse</h1>
+        <p>a private instrument</p>
+        <p class="cn">特洛伊木马 · 私人器具</p>
+        <span class="gate-tag">18R · Adults only</span>
+      </div>
+      <div class="gate-box alert">
+        <h2>内容警告 · 18R</h2>
+        <p>本工具用于生成<strong>成人向虚构角色扮演</strong>的设定文本，面向已达成年、完全自愿的合意幻想。</p>
+        <p>生成内容可能包含露骨的身体描写、非常规（非人类）身体结构，以及支配—臣服权力关系、束缚与强制类情境。</p>
+        <p>请仅在你已年满所在国家／地区法定成年年龄、且自愿接触此类内容的前提下继续。若不符合，请直接离开。</p>
+      </div>
+      <div class="gate-box">
+        <h2>它做什么 · 用途</h2>
+        <p>把「我想要什么」「对方是什么」「底线在哪」三件事，写成一份能直接贴给模型的说明书。</p>
+        <p>它不预设你怎么用。常见的一类用法是与 AI 角色建立情感或性关系的用户；但同样可以只把它当一份角色档案生成器，或者一个反复打磨的设定草稿本。</p>
+        <ul>
+          <li>把偏好拆成可勾选的强度、场景与边界，而不是每次重新描述</li>
+          <li>把对方写成身体 + 性格 + 事后的双档案，让它跨轮次保持一致</li>
+          <li>把底线写死在最前面，交给模型当硬约束而不是建议</li>
+          <li>把「同意」与「强度」分成两套机制，不让重口味被误读成许可</li>
+        </ul>
+      </div>
+<!--PART5-->
