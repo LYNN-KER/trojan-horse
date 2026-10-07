@@ -1,50 +1,57 @@
 
-  document.querySelectorAll('[data-char]').forEach(card => {
-    const c = state[card.dataset.char];
-    card.querySelectorAll('.nh-only').forEach(el => setCls(el, 'block-off', !isNH(c)));
-    setCls(card.querySelector('.g-penile'), 'block-off', !hasP(c));
-    setCls(card.querySelector('.g-vaginal'), 'block-off', !hasV(c));
-  });
-  $('obj-switch').setAttribute('aria-checked', state.obj.on ? 'true' : 'false');
-  $('obj-body').hidden = !state.obj.on;
-  $('ac-switch').setAttribute('aria-checked', state.after.on ? 'true' : 'false');
-  $('ac-body').hidden = !state.after.on;
-  $('st-switch').setAttribute('aria-checked', state.style.on ? 'true' : 'false');
-  $('st-body').hidden = !state.style.on;
-  $('st-pronoun-wrap').hidden = state.style.person !== 'third';
-  document.querySelectorAll('.scenario').forEach(row => {
-    const s = state.scenarios[row.dataset.key];
-    const on = !!(s && s.on);
-    row.querySelector('.switch').setAttribute('aria-checked', on ? 'true' : 'false');
-    const n = row.querySelector('.scenario-note');
-    n.disabled = !on;
-    /* 正在这里打字就别回写，否则光标会被 paint 踢走，输入框看起来也像坏了。 */
-    const want = (s && s.note) || '';
-    if (n.value !== want && document.activeElement !== n) n.value = want;
-    setCls(row, 'open', on);
-  });
+  // 页眉自检：一眼看出语言层是否完整、有没有 undefined 混进产出
+  let diag = $('diag');
+  if (!diag) {
+    diag = document.createElement('div');
+    diag.id = 'diag';
+    diag.style.cssText = 'margin-top:.5rem;font:11px/1.5 ui-monospace,Menlo,monospace;color:var(--muted);opacity:.65;letter-spacing:0;text-transform:none';
+    const h = document.querySelector('header');
+    if (h) h.appendChild(diag);
+  }
+  // 注意用 typeof 直接判作用域内的绑定：顶层 const 不会挂到 window 上，
+  // 写成 window[k] 会永远误报 MISSING。
+  const layerOk = typeof splitBi === 'function' && typeof vocabLines === 'function'
+    && typeof scopeName === 'function' && typeof descOf === 'function' && typeof titleText === 'function';
+  diag.textContent = 'lang-layer ' + (layerOk ? 'ok' : 'MISSING') + ' · undefined 混入产出: ' + (/\bundefined\b|\[object Object\]/.test(text) ? '有' : '无');
 
-  const playCount = Object.keys(state.plays).length;
-  const commonOn = COMMON.filter(c => state.plays[c.en]).length;
-  $('play-pick').hidden = state.playsMode !== 'pick';
-  $('play-count').textContent =
-    '常用十项已选 ' + commonOn + ' / ' + COMMON.length +
-    '　·　全部玩法已选 ' + playCount + ' / ' + PLAYS.reduce((n, g) => n + g.items.length, 0) +
-    (state.playsMode === 'auto' ? '　·　当前为「交给模型」，以上选择暂不写入 prompt' : '');
+  save();
+}
 
-  calcSizeDiff();
-  const mode = state.mode;
-  const { text, errors, warnings } = buildPrompt(mode);
-  $('output').textContent = text;
+async function copyOutput(btn) {
+  try {
+    const b = btn || $('copy-btn');
+    if (!b.dataset.label) b.dataset.label = b.textContent;
+    const label = b.dataset.label;
+    const text = $('output').textContent;
+    if (await copyText(text)) {
+      hideReveal();
+      b.textContent = '已复制 ✓';
+      b.classList.add('copied');
+      setTimeout(() => { b.textContent = label; b.classList.remove('copied'); }, 1500);
+    } else {
+      revealText(text);
+      b.textContent = '复制失败 · 已展开供手动选择';
+      setTimeout(() => { b.textContent = label; b.classList.remove('copied'); }, 2000);
+    }
+  } catch (err) { fatal(err); }
+}
 
-  const otherLen = buildPrompt(mode === 'full' ? 'compact' : 'full').text.length;
-  const len = text.length;
-  const delta = otherLen - len;
-  $('budget-len').textContent = len.toLocaleString() + ' 字符 · 约 ' + Math.round(len * 0.75).toLocaleString() + ' tokens（粗估）';
-  $('budget-diff').textContent = mode === 'compact'
-    ? '精简版 · 切到完整版约 ' + (delta > 0 ? '+' : '−') + Math.abs(delta).toLocaleString() + ' 字符'
-    : '完整版 · 切到精简版可省 ' + Math.max(0, -delta).toLocaleString() + ' 字符';
+/* ═══════════ 事件总线 ═══════════
+   原来所有交互只挂一层 document 委托。那是单点：宿主 WebView 吞掉冒泡、有脚本在
+   document 上拦一道、或者初始化在注册之前就断了，委托就整层失效——而界面照样完整，
+   因为渲染是 paint() 干的，跟事件无关。于是正好是「页面好好的，一个都按不动」。
 
-  renderIssues(errors, warnings);
-  $('copy-btn').disabled = errors.length > 0;
-<!--PART44-->
+   现在不押单点：每个可交互元素直接绑一次，document 冒泡与 window 捕获各再兜一层。
+   三条通道拿到的是同一个事件对象，靠上面的标记保证一次点击只被处理一次。 */
+function closestOf(target, sel) {
+  let n = target, guard = 0;
+  while (n && guard++ < 12) {
+    if (n.nodeType === 1) {
+      if (typeof n.closest === 'function') { try { return n.closest(sel); } catch (e) {} }
+      if (typeof n.matches === 'function' && n.matches(sel)) return n;
+    }
+    n = n.parentNode;
+  }
+  return null;
+}
+<!--PART45-->
