@@ -1,77 +1,74 @@
 
-/* 表内描述是中文、英文正文需要对应句的，统一放这里 */
-const DESC_EN = {
-  arch: {
-    cold: 'Restrained and terse, never explains. Emotion leaks out only through what the body does.',
-    warm: 'Strong caretaking instinct: checks the other person\'s state before acting.',
-    possessive: 'Treats the other person as property. Mood shifts the moment anyone or anything else becomes relevant.',
-    cruel: 'Pleasure comes from the other person losing control and having no way out of it.',
-    playful: 'Treats the scene as a game. Enjoys waiting to see who comes apart first.',
-    servile: 'Puts their own desire after the other person\'s. Their own satisfaction comes second.',
-    manic: 'Mood and intensity both run high. Overshoots easily and needs to be pulled back.',
-    detached: 'Cool and procedural. Movements precise, emotion largely undecorated.',
-  },
-  voice: {
-    short: 'Rarely more than ten characters.',
-    plain: 'Standard written language, no ornament.',
-    slow: 'Sentences drawn out, the ending held.',
-    crude: 'Swearing is default vocabulary, not reserved for special occasions.',
-    formal: 'Deliberately distant formal address.',
-    whisper: 'Rendered as lowered volume and breath.',
-    coaxing: 'Rising endings, soothing verbal tics.',
-    silent: 'Does not speak unprompted.',
-  },
-  init: {
-    lead: 'B is the one who starts.',
-    wait: 'Does not push forward. Waits for A to move first.',
-    tease: 'Manufactures tension without ever taking A\'s decision away.',
-    press: 'Keeps increasing pressure and will not stop on their own.',
-  },
-  cont: {
-    strict: 'Every turn continues the same relationship. Nothing resets.',
-    drift: 'Broadly consistent, allowed to shift with circumstance.',
-    reset: 'Each turn reads as a first meeting.',
-  },
-  acPart: {
-    water: 'Clean warm water, drunk slowly rather than gulped at once.',
-    clean: 'Washing, disinfecting, dressing or bandaging where needed.',
-    checkin: 'Asks how it is now, then genuinely stops and waits for the answer.',
-    debrief: 'What went too far, what not to do next time, what should have been said.',
-    stay: 'No further sex required. Simply be in the same space.',
-    nextday: 'Asks again the following day, unprompted.',
-  },
-  sense: {
-    visual: 'Engorgement, the string of a fluid, gradations of flush',
-    audio: 'Onomatopoeia, broken breath, swallowing, skin meeting skin',
-    tactile: 'Temperature difference, compression, spasm, pulse',
-    smell: 'Scent of fluids, skin after sweat, the smell of genitals',
-    taste: 'Saliva, fluids, the salt on skin',
-  },
+const state = {
+  you: blankChar(), them: blankChar(), persona: blankPersona(), obj: blankObj(), after: blankAfter(), style: blankStyle(),
+  posYou: [], posThem: [], titlesYou: [], titlesThem: [],
+  plays: {}, open: {}, scenarios: {}, tone: '',
+  safety: { safeword: '', aftercare: 'required', limits: '' },
+  theme: 'light', mode: 'full', lang: 'cn', playsMode: 'auto', playsOnly: false,
 };
 
-/* 状态 ═══════════ */
-const KEY = 'trojan-horse:v16';
-const GATE_KEY = 'trojan-horse:gate:v1';
+function normChar(src) {
+  const c = Object.assign(blankChar(), src || {});
+  c.gen = Object.assign(blankGen(), (src && src.gen) || {});
+  return c;
+}
 
-function blankGen() {
-  return { types: [], pform: '', pstate: '', plen: '', pgirth: '', pdesc: '',
-    vdepth: '', vaperture: '', vtraits: [], vdesc: '', orifices: [] };
+const STRING_GROUPS = {
+  pformYou: { get: () => state.you.gen.pform, set: v => { state.you.gen.pform = v; } },
+  pformThem: { get: () => state.them.gen.pform, set: v => { state.them.gen.pform = v; } },
+  objRung: { get: () => state.obj.rung, set: v => { state.obj.rung = v; } },
+  acMode: { get: () => state.after.mode, set: v => { state.after.mode = v; } },
+  pnArch: { get: () => state.persona.archetype, set: v => { state.persona.archetype = v; } },
+  pnInit: { get: () => state.persona.initiative, set: v => { state.persona.initiative = v; } },
+  pnCont: { get: () => state.persona.continuity, set: v => { state.persona.continuity = v; } },
+};
+const BOOL_GROUPS = {
+  stVocabLock: 'vocabLock', stToneBond: 'toneBond', stSound: 'sound', stReact: 'react', stNoFade: 'noFade',
+};
+const ARRAY_GROUPS = {
+  gTypesYou: () => state.you.gen.types, gTypesThem: () => state.them.gen.types,
+  vtraitsYou: () => state.you.gen.vtraits, vtraitsThem: () => state.them.gen.vtraits,
+  orificesYou: () => state.you.gen.orifices, orificesThem: () => state.them.gen.orifices,
+  objFlags: () => state.obj.flags, acParts: () => state.after.parts, pnVoice: () => state.persona.voice,
+  stSenses: () => state.style.senses, stTags: () => state.style.tags,
+  stTalk: () => state.style.talk, stScope: () => state.style.scope,
+  stStages: () => state.style.stages, stLint: () => state.style.lint,
+  posYou: () => state.posYou, posThem: () => state.posThem,
+  titlesYou: () => state.titlesYou, titlesThem: () => state.titlesThem,
+};
+const STICKY_RADIO = new Set(['posYou', 'posThem', 'pnArch', 'pnInit', 'pnCont']);
+
+let saveTimer = null;
+function save() { clearTimeout(saveTimer); saveTimer = setTimeout(flushSave, 300); }
+function flushSave() {
+  clearTimeout(saveTimer); saveTimer = null;
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
 }
-function blankChar() { return { species: 'human', subspecies: '', gender: '', h: '', w: '', build: '',
-  gen: blankGen(), material: '', tent: '', tlen: '', tail: '', extra: '' }; }
-function blankObj() { return { on: false, rung: '', flags: [], note: '' }; }
-function blankAfter() { return { on: false, mode: '', parts: [], timing: '', note: '' }; }
-function blankPersona() { return { name: '', archetype: '', voice: [], initiative: '', continuity: 'strict',
-  warmth: '', energy: '', pace: '', attitude: '', habit: '', weak: '' }; }
-function blankStyle() {
-  return {
-    on: false, vocabLock: true, vocab: ST_VOCAB_DEFAULT, banned: ST_BANNED_DEFAULT,
-    sound: true, sounds: ST_SOUND_DEFAULT, toneBond: true,
-    senses: ['visual', 'audio', 'tactile', 'smell', 'taste'], minSenses: '2',
-    react: true, tags: [], talk: [], scope: [],
-    stages: ['foreplay', 'insert', 'stroke', 'climax', 'after'],
-    noFade: true, person: 'second', pronoun: '', length: 'medium',
-    lint: ['banned', 'sound', 'coarse', 'senses', 'react', 'tags'],
-  };
+window.addEventListener('pagehide', flushSave);
+window.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushSave(); });
+
+function applyState(d) {
+  if (!d || !d.you || !d.them) throw new Error('配置格式不正确');
+  state.you = normChar(d.you);
+  state.them = normChar(d.them);
+  state.persona = Object.assign(blankPersona(), d.persona || {});
+  state.obj = Object.assign(blankObj(), d.obj || {});
+  state.after = Object.assign(blankAfter(), d.after || {});
+  state.style = Object.assign(blankStyle(), d.style || {});
+  ['posYou', 'posThem', 'titlesYou', 'titlesThem'].forEach(k => { if (Array.isArray(d[k])) state[k] = d[k]; else state[k] = []; });
+  state.plays = d.plays || {};
+  state.open = d.open || {};
+  state.scenarios = d.scenarios || {};
+  state.tone = d.tone || '';
+  state.safety = Object.assign({ safeword: '', aftercare: 'required', limits: '' }, d.safety || {});
+  state.theme = d.theme || 'light';
+  state.mode = d.mode === 'compact' ? 'compact' : 'full';
+  state.lang = d.lang === 'en' ? 'en' : 'cn';
+  state.playsMode = d.playsMode === 'pick' ? 'pick' : 'auto';
+  state.playsOnly = !!d.playsOnly;
 }
-<!--PART21-->
+function load() {
+  try { const raw = localStorage.getItem(KEY); if (!raw) return false; applyState(JSON.parse(raw)); return true; }
+  catch (e) { return false; }
+}
+<!--PART22-->
