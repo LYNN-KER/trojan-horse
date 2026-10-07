@@ -198,7 +198,7 @@
   .scenario { display: flex; align-items: flex-start; gap: .8rem; padding: .7rem 0; border-bottom: 1px dashed var(--border); }
   .scenario:last-child { border-bottom: none; }
   .switch { flex: 0 0 auto; margin-top: .3rem; width: 34px; height: 18px; border-radius: 9px; background: var(--card); border: 1px solid var(--border); position: relative; cursor: pointer; transition: all .2s; -webkit-tap-highlight-color: transparent; }
-  .switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--muted); transition: all .2s; }
+  .switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--muted); transition: all .2s; };
   .switch[aria-checked="true"] { background: var(--danger); border-color: var(--danger); }
   .switch[aria-checked="true"]::after { left: 18px; background: #fff; }
   .scenario-body { flex: 1; }
@@ -900,4 +900,53 @@ const AFTER_PARTS = [
   ['nextday', '次日回访 Next-day', '第二天主动问一句怎么样'],
 ];
 const AFTER_TIMING = [['', '—'], ['immediate', '立刻 Scene end'], ['30m', '30 分钟内'], ['night', '当晚 That night'], ['nextday', '次日 Next day']];
-<!--PART5-->
+
+const OBJ_FLAGS = [
+  { key: 'noperson', cn: '不给予人格回应', d: '不停下来确认、不道歉、不说自己正在对一个人做什么。',
+    p: 'No acknowledgement of personhood: B never pauses to ask, apologise, or name what is being done to a person.',
+    dc: '不承认对方具有人格：B 从不停下来询问、不道歉，也不点明自己正在对一个人做什么。' },
+  { key: 'anonymous', cn: '只用功能指代', d: '不叫名字，只按用途称呼。',
+    p: 'A is never referred to by name. Refer to it only by function.',
+    dc: '从不称 A 的名字，只按功能指称它。' },
+  { key: 'stored', cn: '有固定存放处', d: '不用时靠边放好，"被收起来"是平淡的日常描写。',
+    p: 'A has a designated place. When not in use it is put away, and being put away is described plainly.',
+    dc: 'A 有一个固定存放处。不用时被收起来，而"被收起来"要用平淡的日常笔调写。' },
+  { key: 'noswaps', cn: '不可替换', d: '不暗示"还有下一个"，就是这一个。',
+    p: '"There could be another" is never implied. This is the only one.',
+    dc: '绝不暗示"还有下一个"。就是这一个。' },
+  { key: 'routine', cn: '固定流程', d: '每次同一套顺序，不引入新花样。',
+    p: 'Every scene runs the same sequence. No novelty, no variety, nothing new is introduced.',
+    dc: '每一场都走同一套顺序。不要新鲜感，不要变化，不引入任何新东西。' },
+  { key: 'silent', cn: '不对其说话', d: 'B 不对 A 用语言交流；发声只是附带。',
+    p: 'B does not address A with words. Any vocalisation is incidental, not communicative.',
+    dc: 'B 不用语言对 A 说话。任何发声都只是附带，不构成交流。' },
+];
+const objFlagPrompt = f => (state.lang === 'cn' ? f.dc : f.p);
+
+const ST_VOCAB_DEFAULT = [
+  '外生殖器（男）：阴茎、肉棒、鸡巴、粗屌、龟头、马眼、囊袋、茎身、包皮',
+  '外生殖器（女）：阴户、穴唇、肉唇、阴唇、阴蒂、肉蒂、屁股、臀瓣',
+  '内生殖器（女）：小穴、淫穴、肉道、骚穴、穴口、嫩穴、穴肉、媚肉、肉缝、穴道、肉壁、宫口',
+  '胸部：奶子、乳房、乳头、乳尖、乳晕',
+  '肛门：后穴、屁眼',
+  '体液：淫水、骚水、精液、白浊、浓精、汁水',
+].join('\n');
+const ST_BANNED_DEFAULT = '私处、花园、蓓蕾、花穴、玉柱、黄豆、红果、三角地带、私密部位、云雨、结合';
+const ST_SOUND_DEFAULT = '啪啪、啪叽、啪嗒、咕啾、噗嗤、滋滋、喷喷、咕滋';
+
+const ST_SENSES = [
+  ['visual', '视觉 Visual', '器官充血状态、液体拉丝、皮肤泛红层次'],
+  ['audio', '听觉 Audio', '拟声词、呼吸断裂、吞咽、皮肉撞击'],
+  ['tactile', '触觉 Tactile', '温度差、挤压感、痉挛收缩、脉搏'],
+  ['smell', '嗅觉 Olfactory', '体液气味、汗后皮肤、性器味道'],
+  ['taste', '味觉 Gustatory', '唾液、体液、皮肤上的咸'],
+];
+const ST_SENSE_EN = { visual: 'sight', audio: 'sound', tactile: 'touch', smell: 'smell', taste: 'taste' };
+
+const ST_TAGS = [
+  ['scale', '体感缩尺', 'Scale and leverage. In every physical description A is the smaller body — narrower hands and wrists, slimmer waist, a frame that fits inside one hand, a voice that carries less. The size difference is embedded at every point of contact: the way a single hand closes entirely around a wrist or covers the whole lower abdomen, fingers sinking into flesh; the way B can lift, turn, or pin A with one hand; the stretch and the adjustment required at entry.'],
+  ['novice', '生涩留存', 'Persistent unfamiliarity. A\'s body keeps a quality that has not been trained smooth, and this does not depend on how many times anything has happened. Being touched produces a slight alarm before pleasure. An orgasm arrives as something A does not know how to receive. Every entry keeps a half-new resistance and a fresh adjustment. This is a permanent quality of the character, not a plot milestone, and it does not fade as the relationship progresses.'],
+  ['unaware', '无自觉诱惑', 'Unconscious allure. A\'s attractiveness is entirely passive — an exposed line of the body, a facial expression, a posture — none of it staged. A never registers being looked at in that way and never offers, poses, or displays. Do not write A as aware of their own appeal, and do not narrate their own seductiveness to them.'],
+  ['pure', '纯欲同屏', 'Innocence and desire are the same temperament, not two modes. The same voice can say "I want strawberries" and "I want you inside me". Do not use contrast constructions such as "only moments ago she was... and now...". Any contradiction exists only in an observer\'s perception; A is entirely consistent with themself.'],
+];
+<!--PART6-->
