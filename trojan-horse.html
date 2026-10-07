@@ -1,26 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Trojan Horse</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Noto+Serif+SC:wght@300;400;600&display=swap');
 
-try {
-  buildStatic();
-  buildPlayList();
-  buildScenarios();
-  verifyBuild();
-  bindInteractive(document);
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-  const restored = load();
-  if (!restored) {
-    state.theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    PLAYS.forEach(gp => gp.items.forEach(it => { state.open[it.en] = true; }));
+  :root {
+    --bg: #FAF9F6; --fg: #2C2C2C; --muted: #8A8680; --accent: #6B5B4E;
+    --border: #E0DCD6; --card: #FFFFFF; --hover: #F0EDEA;
+    --active: #6B5B4E; --active-fg: #FAF9F6; --danger: #8B3A3A;
+    --warn-bg: #F6EFE9; --warn-bd: #D9C4B4;
+    --l-soft: #A8B5A0; --l-med: #C4A87C; --l-hard: #A06B5B; --l-ext: #8B3A3A;
+    --serif-en: 'Cormorant Garamond', serif;
+    --serif-cn: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', STSong, SimSun, serif;
+    --serif: var(--serif-en), var(--serif-cn);
+    --radius: 2px;
   }
-  hydrate();
-  paint();
-  if (!gateRemembered()) openGate();
-  window.TH.ready = true;
-} catch (err) {
-  // 初始化断在半路时，静态 HTML 里的按钮（18R 门、夜间、输出、清空）必须还能点，
-  // 否则用户会以为整个文件坏了，连那道门都出不去。
-  try { bindInteractive(document); } catch (e) {}
-  fatal(err);
-}
-</script>
-</body>
-</html>
+
+  :root[data-theme="dark"] {
+    --bg: #121110; --fg: #E7E3DC; --muted: #8C867D; --accent: #C4AC92;
+    --border: #2C2926; --card: #1B1A18; --hover: #232120;
+    --active: #C4AC92; --active-fg: #14130F; --danger: #C97C74;
+    --warn-bg: #241C18; --warn-bd: #4A342B;
+    --l-soft: #7E8F76; --l-med: #B29363; --l-hard: #9C6A58; --l-ext: #C97C74;
+  }
+
+  html { font-size: 15px; scroll-behavior: smooth; }
+  body { font-family: var(--serif-en), var(--serif-cn); background: var(--bg); color: var(--fg); line-height: 1.7; min-height: 100vh; -webkit-font-smoothing: antialiased; transition: background .25s, color .25s; }
+  body.gate-locked { overflow: hidden; }
+
+  .gate { position: fixed; inset: 0; z-index: 999; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; background: var(--bg); }
+  .gate-wrap { min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: calc(1.5rem + env(safe-area-inset-top)) 1.25rem calc(1.5rem + env(safe-area-inset-bottom)); }
+  .gate-wrap:focus { outline: none; }
+  .gate-inner { width: 100%; max-width: 520px; }
+  .gate.gate-in .gate-inner { animation: gateIn .3s cubic-bezier(.22,.61,.36,1) both; }
+  @keyframes gateIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .gate-mark { text-align: center; padding-bottom: 1.2rem; margin-bottom: 1.3rem; border-bottom: 1px solid var(--border); }
+  .gate-mark h1 { font-family: var(--serif-en); font-size: 1.9rem; font-weight: 300; letter-spacing: .15em; text-transform: uppercase; color: var(--accent); line-height: 1.4; }
+  .gate-mark p { font-size: .78rem; color: var(--muted); margin-top: .3rem; font-style: italic; letter-spacing: .04em; }
+  .gate-mark p.cn { font-family: var(--serif-cn); font-style: normal; font-size: .75rem; margin-top: .2rem; letter-spacing: .1em; }
+  .gate-tag { display: inline-block; margin-top: .9rem; padding: .22rem .65rem; border: 1px solid var(--danger); color: var(--danger); font-size: .68rem; letter-spacing: .16em; text-transform: uppercase; }
+  .gate-box { border: 1px solid var(--border); background: var(--card); border-radius: var(--radius); padding: 1rem 1.1rem; margin-bottom: .9rem; }
+  .gate-box.alert { border-color: var(--warn-bd); background: var(--warn-bg); }
+  .gate-box h2 { font-size: .7rem; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); margin-bottom: .55rem; }
+  .gate-box.alert h2 { color: var(--danger); }
+  .gate-box p { font-size: .8rem; line-height: 1.7; margin-bottom: .5rem; }
+  .gate-box p:last-child { margin-bottom: 0; }
+  .gate-box ul { margin: .1rem 0 0 1.05rem; font-size: .78rem; line-height: 1.7; color: var(--muted); }
+  .gate-box li { margin-bottom: .15rem; }
+  .gate-check { display: flex; align-items: center; gap: .5rem; font-size: .78rem; color: var(--muted); margin-bottom: .9rem; cursor: pointer; }
+  .gate-check input { width: 14px; height: 14px; accent-color: var(--accent); flex: 0 0 auto; }
+  .gate-actions { display: flex; gap: .5rem; align-items: stretch; }
+  .gate-btn { flex: 1 1 auto; padding: .8rem .9rem; font-family: var(--serif-en), var(--serif-cn); font-size: .78rem; letter-spacing: .1em; text-transform: uppercase; background: var(--active); color: var(--active-fg); border: none; border-radius: var(--radius); cursor: pointer; transition: opacity .2s; -webkit-tap-highlight-color: transparent; }
+  .gate-btn:hover { opacity: .85; }
+  .gate-leave { flex: 0 0 auto; padding: .8rem 1rem; font-family: var(--serif-en), var(--serif-cn); font-size: .75rem; letter-spacing: .08em; background: transparent; color: var(--muted); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .gate-leave:hover { background: var(--hover); color: var(--fg); }
+  .gate-btn:focus-visible, .gate-leave:focus-visible, .gate-check input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .gate-fine { font-size: .72rem; color: var(--muted); margin-top: 1rem; line-height: 1.65; font-style: italic; }
+  .gone { max-width: 520px; margin: 4rem auto; text-align: center; color: var(--muted); font-size: .9rem; }
+  @media (max-height: 700px) {
+    .gate-mark { padding-bottom: .9rem; margin-bottom: 1rem; }
+    .gate-mark h1 { font-size: 1.6rem; }
+    .gate-box { padding: .8rem .9rem; margin-bottom: .7rem; }
+  }
+
+  .container { max-width: 760px; margin: 0 auto; padding: 3rem 1.5rem 6rem; }
+  header { position: relative; text-align: center; margin-bottom: 2.5rem; padding-bottom: 2rem; border-bottom: 1px solid var(--border); }
+  header h1 { font-family: var(--serif-en); font-size: 2.2rem; font-weight: 300; letter-spacing: .15em; text-transform: uppercase; color: var(--accent); }
+  header p { font-size: .85rem; color: var(--muted); margin-top: .5rem; font-style: italic; letter-spacing: .05em; }
+  header p.cn { font-family: var(--serif-cn); font-style: normal; font-size: .8rem; margin-top: .25rem; letter-spacing: .1em; }
+  .header-tools { position: absolute; top: -.4rem; right: 0; display: flex; gap: .4rem; }
+  .theme-btn { font-family: var(--serif-en), var(--serif-cn); font-size: .7rem; letter-spacing: .12em; padding: .3rem .7rem; background: var(--card); color: var(--muted); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; transition: all .2s; }
+  .theme-btn:hover { background: var(--hover); color: var(--fg); }
+
+  .fatal { background: var(--warn-bg); border: 2px solid var(--danger); border-radius: var(--radius); padding: .9rem 1.1rem; margin-bottom: 1.5rem; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .8rem; color: var(--danger); line-height: 1.6; }
+
+  section { margin-bottom: 2.5rem; }
+  section h2 { font-size: .8rem; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin-bottom: .3rem; padding-bottom: .5rem; border-bottom: 1px solid var(--border); }
+  section h2 .cn { font-family: var(--serif-cn); text-transform: none; letter-spacing: .1em; font-weight: 400; font-size: .75rem; }
+  .hint { font-size: .75rem; color: var(--muted); font-style: italic; margin-bottom: .6rem; }
+
+  .body-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem; align-items: start; }
+  .body-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.2rem; }
+  .body-card h3 { font-size: .75rem; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: var(--accent); margin-bottom: .5rem; }
+  .body-card h3 .cn { font-family: var(--serif-cn); text-transform: none; font-weight: 400; letter-spacing: .05em; }
+  .body-card .hint { font-style: normal; font-size: .72rem; line-height: 1.55; margin-bottom: 1rem; padding-left: .5rem; border-left: 2px solid var(--border); }
+  .card-role { display: inline-block; font-size: .62rem; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--border); border-radius: var(--radius); padding: .1rem .45rem; margin-bottom: .6rem; }
+
+  .field { margin-bottom: .7rem; }
+  .field > label { display: block; font-size: .72rem; color: var(--muted); margin-bottom: .25rem; letter-spacing: .03em; }
+  .field input, .field select, .field textarea, .scenario-note, .obj-note, .st-text {
+    width: 100%; padding: .4rem .55rem;
+    font-family: var(--serif-en), var(--serif-cn); font-size: .88rem; color: var(--fg);
+    background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); outline: none; transition: border-color .2s;
+  }
+  .field textarea, .st-text { min-height: 62px; resize: vertical; line-height: 1.6; }
+  .field input:focus, .field select:focus, .field textarea:focus, .obj-note:focus, .scenario-note:focus, .st-text:focus { border-color: var(--accent); }
+  .mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 .6rem; }
+  .inline-note { font-size: .7rem; color: var(--muted); font-style: italic; margin: -.3rem 0 .5rem; }
+  .block-off { opacity: .42; filter: saturate(.4); }
+
+  .sub-block { margin-top: .9rem; padding-top: .7rem; border-top: 1px dashed var(--border); }
+  .sub-block h4 { font-size: .68rem; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); margin-bottom: .6rem; }
+  .sub-block h4 .cn { font-family: var(--serif-cn); text-transform: none; letter-spacing: .05em; font-weight: 400; }
+  .sub-block.nh, .sub-block.st { background: var(--warn-bg); border: 1px solid var(--warn-bd); border-radius: var(--radius); padding: .8rem; }
+  [hidden] { display: none !important; }
+
+  .size-diff { text-align: center; padding: .8rem; margin-top: 1rem; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); font-size: .85rem; font-style: italic; color: var(--muted); }
+  .count-note { font-size: .74rem; color: var(--muted); margin-top: .4rem; font-variant-numeric: tabular-nums; }
+
+  .pref-group { margin-bottom: 1.5rem; }
+  .pref-group h3 { font-size: .75rem; font-weight: 400; color: var(--accent); margin-bottom: .5rem; font-style: italic; }
+  .pref-group h3 .cn { font-family: var(--serif-cn); font-style: normal; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+  .chips.sm .chip { font-size: .75rem; padding: .22rem .6rem; }
+  .chip, .tone-chip { font-family: var(--serif-en), var(--serif-cn); font-size: .8rem; padding: .3rem .75rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); color: var(--fg); cursor: pointer; transition: all .2s; user-select: none; -webkit-tap-highlight-color: transparent; }
+  .chip:hover, .tone-chip:hover { background: var(--hover); }
+  .chip.selected, .tone-chip.selected { background: var(--active); color: var(--active-fg); border-color: var(--active); }
+  .chip:focus-visible, .tone-chip:focus-visible, .switch:focus-visible, .pill:focus-visible, .play-label:focus-visible, .ladder-row:focus-visible, .common-chip:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .chip.axis-degrade, .chip.axis-place { border-color: var(--warn-bd); }
+  .chip.axis-degrade.selected, .chip.axis-place.selected { background: var(--danger); color: #fff; border-color: var(--danger); }
+  .chip.axis-flag { font-size: .75rem; padding: .22rem .6rem; }
+  .chip.axis-flag.selected::before { content: '✓ '; }
+  .chip.axis-st { font-size: .75rem; padding: .22rem .6rem; }
+  .chip.axis-st.selected { background: var(--active); }
+
+  .common-box { border: 1px solid var(--border); background: var(--card); border-radius: var(--radius); padding: .9rem 1rem; margin-top: .8rem; }
+  .common-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; margin-bottom: .65rem; }
+  .common-name { font-size: .7rem; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); }
+  .common-name .n { font-family: var(--serif-cn); letter-spacing: .06em; color: var(--muted); font-weight: 400; }
+  .common-list { display: flex; flex-wrap: wrap; gap: .4rem; }
+  .common-chip {
+    font-family: var(--serif-en), var(--serif-cn); font-size: .78rem;
+    padding: .3rem .6rem; border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--bg); color: var(--muted); cursor: pointer; transition: all .18s;
+    user-select: none; -webkit-tap-highlight-color: transparent;
+  }
+  .common-chip:hover { background: var(--hover); color: var(--fg); }
+  .common-chip.on { background: var(--active); color: var(--active-fg); border-color: var(--active); }
+  .common-chip .lv { font-size: .62rem; opacity: .65; margin-left: .3rem; letter-spacing: .05em; }
+  .common-chip.on .lv { opacity: .9; }
+
+  .pg { border: 1px solid var(--border); background: var(--card); border-radius: var(--radius); margin-bottom: .7rem; }
+  .pg > summary { list-style: none; cursor: pointer; padding: .6rem .8rem; display: flex; align-items: center; justify-content: space-between; gap: .5rem; border-radius: var(--radius); }
+  .pg > summary::-webkit-details-marker { display: none; }
+  .pg > summary:hover { background: var(--hover); }
+  .pg-name { font-size: .78rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+  .pg-count { font-size: .7rem; color: var(--muted); }
+  .pg-body { padding: 0 .8rem .5rem; }
+
+  .play-item { margin-bottom: .35rem; }
+  .intensity-row { display: flex; align-items: center; gap: .8rem; padding: .3rem 0; }
+  .play-label { flex: 0 0 168px; font-size: .85rem; cursor: pointer; border-radius: var(--radius); padding: .1rem .25rem; transition: background .2s; }
+  .play-label:hover { background: var(--hover); }
+  .play-label .cn { font-family: var(--serif-cn); color: var(--muted); font-size: .75rem; margin-left: .3rem; }
+  .play-label .caret { color: var(--muted); font-size: .7rem; margin-left: .35rem; }
+  .play-label .info { display: inline-block; min-width: 1.1em; margin-left: .4rem; font-size: .62rem; line-height: 1.1; text-align: center; font-style: italic; color: var(--muted); border: 1px solid var(--border); border-radius: 50%; transition: all .2s; }
+  .play-label:hover .info, .play-label[aria-expanded="true"] .info { color: var(--active-fg); background: var(--accent); border-color: var(--accent); }
+  .badge { display: inline-block; min-width: 1.2em; text-align: center; font-style: italic; color: var(--accent); border: 1px solid var(--warn-bd); border-radius: 50%; padding: 0 .15rem; }
+  .play-desc { font-size: .76rem; color: var(--muted); line-height: 1.6; padding: .1rem .25rem .5rem 12.4rem; }
+  .intensity-pills { display: flex; gap: .25rem; }
+  .pill { font-family: var(--serif-en), var(--serif-cn); font-size: .7rem; padding: .2rem .55rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); color: var(--muted); cursor: pointer; transition: all .2s; user-select: none; -webkit-tap-highlight-color: transparent; }
+  .pill:hover { background: var(--hover); }
+  .pill.p-soft.active { background: var(--l-soft); color: #fff; border-color: var(--l-soft); }
+  .pill.p-med.active { background: var(--l-med); color: #fff; border-color: var(--l-med); }
+  .pill.p-hard.active { background: var(--l-hard); color: #fff; border-color: var(--l-hard); }
+  .pill.p-extreme.active { background: var(--l-ext); color: #fff; border-color: var(--l-ext); }
+  [data-theme="dark"] .pill.active { color: #121110; }
+
+  .to-output { display: inline-block; margin-top: .8rem; font-size: .78rem; color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--border); }
+  .notice { background: var(--warn-bg); border: 1px solid var(--warn-bd); border-radius: var(--radius); padding: .8rem 1rem; font-size: .8rem; color: var(--muted); margin: 1rem 0 1.2rem; }
+  .notice strong { color: var(--danger); font-weight: 600; }
+
+  .obj-head { display: flex; align-items: center; gap: .8rem; padding: .7rem 0; }
+  .obj-title { flex: 1; font-size: .9rem; }
+  .obj-title .cn { font-family: var(--serif-cn); color: var(--muted); font-size: .78rem; margin-left: .4rem; }
+  .obj-body { border: 1px solid var(--warn-bd); background: var(--warn-bg); border-radius: var(--radius); padding: 1rem 1.1rem; }
+  .obj-ladder { display: grid; gap: .35rem; }
+  .ladder-row { display: flex; align-items: flex-start; gap: .6rem; padding: .45rem .55rem; border: 1px solid var(--border); background: var(--card); border-radius: var(--radius); cursor: pointer; transition: all .2s; }
+  .ladder-row:hover { background: var(--hover); }
+  .ladder-row.selected { border-color: var(--danger); box-shadow: inset 0 0 0 1px var(--danger); }
+  .ladder-dot { flex: 0 0 auto; width: 11px; height: 11px; border-radius: 50%; border: 1px solid var(--danger); margin-top: .4rem; }
+  .ladder-row.selected .ladder-dot { background: var(--danger); }
+  .ladder-name { font-size: .85rem; }
+  .ladder-name .cn { font-family: var(--serif-cn); color: var(--muted); font-size: .75rem; margin-left: .3rem; }
+  .ladder-desc { display: block; font-size: .73rem; color: var(--muted); line-height: 1.5; margin-top: .1rem; }
+  .obj-flags, .st-flags { display: flex; flex-wrap: wrap; gap: .4rem; }
+
+  .scen-group { font-size: .7rem; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin: 1rem 0 .3rem; padding-bottom: .3rem; border-bottom: 1px dashed var(--border); }
+  .scen-group:first-child { margin-top: 0; }
+  .scenario { display: flex; align-items: flex-start; gap: .8rem; padding: .7rem 0; border-bottom: 1px dashed var(--border); }
+  .scenario:last-child { border-bottom: none; }
+  .switch { flex: 0 0 auto; margin-top: .3rem; width: 34px; height: 18px; border-radius: 9px; background: var(--card); border: 1px solid var(--border); position: relative; cursor: pointer; transition: all .2s; -webkit-tap-highlight-color: transparent; }
+  .switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--muted); transition: all .2s; }
+  .switch[aria-checked="true"] { background: var(--danger); border-color: var(--danger); }
+  .switch[aria-checked="true"]::after { left: 18px; background: #fff; }
+  .scenario-body { flex: 1; }
+  .scenario-title { font-size: .85rem; }
+  .scenario-title .cn { font-family: var(--serif-cn); color: var(--muted); font-size: .75rem; margin-left: .4rem; }
+  .scenario-desc { font-size: .75rem; color: var(--muted); font-style: italic; margin: .2rem 0 .45rem; }
+  .scenario-note:disabled { opacity: .35; cursor: not-allowed; }
+  .scenario.open .scenario-note { border-left: 2px solid var(--danger); }
+
+  .toolbar { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; align-items: center; }
+  .btn { flex: 1 1 120px; padding: .5rem; font-family: var(--serif-en), var(--serif-cn); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; background: var(--card); color: var(--muted); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; transition: all .2s; }
+  .btn:hover { background: var(--hover); color: var(--fg); }
+  .btn.on { background: var(--active); color: var(--active-fg); border-color: var(--active); }
+  .btn.pick { flex: 0 0 auto; padding: .35rem .6rem; }
+
+  .issues { margin-top: .8rem; font-size: .8rem; color: var(--danger); }
+  .issues div { padding: .2rem 0; }
+  .issues .warn { color: var(--muted); font-style: italic; }
+
+  .output-box { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.2rem; min-height: 160px; font-size: .85rem; line-height: 1.8; white-space: pre-wrap; word-break: break-word; margin-top: 1rem; }
+  .budget { display: flex; gap: 1rem; justify-content: space-between; font-size: .72rem; color: var(--muted); margin-top: .5rem; font-variant-numeric: tabular-nums; }
+  .copy-btn { display: block; width: 100%; margin-top: .8rem; padding: .7rem; font-family: var(--serif-en), var(--serif-cn); font-size: .8rem; letter-spacing: .15em; text-transform: uppercase; background: var(--active); color: var(--active-fg); border: none; border-radius: var(--radius); cursor: pointer; transition: opacity .2s; }
+  .copy-btn:hover { opacity: .85; }
+  .copy-btn.copied { background: var(--l-soft); }
+  [data-theme="dark"] .copy-btn.copied { color: #121110; }
+  .copy-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .share-out { width: 100%; margin-top: .5rem; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .7rem; color: var(--muted); background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: .5rem; word-break: break-all; }
+
+  @media (max-width: 640px) {
+    .body-grid { grid-template-columns: 1fr; }
+    .intensity-row { flex-wrap: wrap; gap: .3rem; }
+    .play-label { flex: 1 0 100%; }
+    .play-desc { padding-left: .25rem; }
+    .header-tools { position: static; justify-content: center; margin-top: 1rem; }
+    .pg-body { padding: 0 .6rem .4rem; }
+    .budget { flex-direction: column; gap: .15rem; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title" hidden>
+  <div class="gate-wrap" id="gate-wrap" tabindex="-1">
+    <div class="gate-inner">
+      <div class="gate-mark">
+        <h1 id="gate-title">Trojan Horse</h1>
+        <p>a private instrument</p>
+        <p class="cn">特洛伊木马 · 私人器具</p>
+        <span class="gate-tag">18R · Adults only</span>
+      </div>
+      <div class="gate-box alert">
+        <h2>内容警告 · 18R</h2>
+        <p>本工具用于生成<strong>成人向虚构角色扮演</strong>的设定文本，面向已达成年、完全自愿的合意幻想。</p>
+        <p>生成内容可能包含露骨的身体描写、非常规（非人类）身体结构，以及支配—臣服权力关系、束缚与强制类情境。</p>
+        <p>请仅在你已年满所在国家／地区法定成年年龄、且自愿接触此类内容的前提下继续。若不符合，请直接离开。</p>
+      </div>
+      <div class="gate-box">
+        <h2>它做什么 · 用途</h2>
+        <p>把「我想要什么」「对方是什么」「底线在哪」三件事，写成一份能直接贴给模型的说明书。</p>
+        <p>它不预设你怎么用。常见的一类用法是与 AI 角色建立情感或性关系的用户；但同样可以只把它当一份角色档案生成器，或者一个反复打磨的设定草稿本。</p>
+        <ul>
+          <li>把偏好拆成可勾选的强度、场景与边界，而不是每次重新描述</li>
+          <li>把对方写成身体 + 性格 + 事后的双档案，让它跨轮次保持一致</li>
+          <li>把底线写死在最前面，交给模型当硬约束而不是建议</li>
+          <li>把「同意」与「强度」分成两套机制，不让重口味被误读成许可</li>
+        </ul>
+      </div>
+      <div class="gate-box">
+        <h2>它不做什么 · 边界</h2>
+        <p>它不联网、不上传、不记录你的任何填写内容（所有数据只存在你自己浏览器的本地存储里）。它不生成图片，不代替你做决定。</p>
+        <p>它也无法保证模型一定遵守安全框架——所以请在开始前和对方谈清楚，而不是只依赖这份文本。</p>
+      </div>
+      <label class="gate-check">
+        <input type="checkbox" id="gate-remember">
+        <span>记住我的选择，以后不再显示此页</span>
+      </label>
+      <div class="gate-actions">
+        <button class="gate-btn" id="gate-enter" data-action="gate-enter" onclick="TH.gateEnter()">我已成年并理解 · 继续</button>
+        <button class="gate-leave" data-action="gate-exit" onclick="TH.gateExit()">离开</button>
+      </div>
+      <p class="gate-fine">这是一个离线单文件网页。关闭页面后所有内容仍留在本机，你随时可以点顶部的「18R」重新阅读此说明。</p>
+    </div>
+  </div>
+</div>
+
+<div class="container" id="app">
+  <header>
+    <div class="header-tools">
+      <button class="theme-btn" data-action="gate-open" onclick="TH.open()" title="重新阅读使用说明">18R</button>
+      <button class="theme-btn" data-action="diag" onclick="TH.diag()" title="自检：事件通道、渲染完整性、本地存储">⚙</button>
+      <button class="theme-btn" data-action="lang" id="lang-btn" title="切换产出的正文语言">输出 EN</button>
+      <button class="theme-btn" data-action="theme" id="theme-btn" aria-label="切换夜间模式">☾ Night</button>
+    </div>
+    <h1>Trojan Horse</h1>
+    <p>a private instrument</p>
+    <p class="cn">特洛伊木马 · 私人器具</p>
+  </header>
+
+  <div class="fatal" id="fatal" hidden></div>
+
+  <section id="sec-persona">
+    <h2>Persona <span class="cn">· 性格（模型角色）</span></h2>
+    <div class="notice">
+      <strong>性格是最容易漏掉、也最容易每轮重猜的一层。</strong>这一栏把它固定下来：原型决定它是谁，语气决定它怎么说话，主动性决定谁先动，弱点决定它能被什么击穿。
+    </div>
+    <div class="body-grid">
+      <div class="body-card">
+        <div class="field">
+          <label>Name <span style="font-family:var(--serif-cn)">· 名字</span></label>
+          <input type="text" id="pn-name" placeholder="留空则不设定，模型自行取名">
+        </div>
+        <div class="field">
+          <label>Archetype <span style="font-family:var(--serif-cn)">· 原型（单选）</span></label>
+          <div class="chips sm" data-group="pnArch" data-multi="false" role="group" aria-label="性格原型"></div>
+        </div>
+        <div class="field">
+          <label>Initiative <span style="font-family:var(--serif-cn)">· 主动性（单选）</span></label>
+          <div class="chips sm" data-group="pnInit" data-multi="false" role="group" aria-label="主动性"></div>
+        </div>
+        <div class="field">
+          <label>Continuity <span style="font-family:var(--serif-cn)">· 跨轮记忆（单选）</span></label>
+          <div class="chips sm" data-group="pnCont" data-multi="false" role="group" aria-label="跨轮一致性"></div>
+        </div>
+      </div>
+      <div class="body-card">
+        <div class="field">
+          <label>Voice <span style="font-family:var(--serif-cn)">· 说话方式（可多选）</span></label>
+          <div class="chips sm" data-group="pnVoice" data-multi="true" role="group" aria-label="说话方式"></div>
+        </div>
+        <div class="mini-grid">
+          <div class="field">
+            <label>Warmth <span style="font-family:var(--serif-cn)">· 温度</span></label>
+            <select id="pn-warmth"></select>
+          </div>
+          <div class="field">
+            <label>Energy <span style="font-family:var(--serif-cn)">· 能量</span></label>
+            <select id="pn-energy"></select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Pace <span style="font-family:var(--serif-cn)">· 语速</span></label>
+          <select id="pn-pace"></select>
+        </div>
+      </div>
+    </div>
+    <div class="field" style="margin-top:1rem">
+      <label>Attitude <span style="font-family:var(--serif-cn)">· 对您的默认态度</span></label>
+      <textarea id="pn-attitude" placeholder="没有场景设定时，它默认怎么对您。例：一开始是公事公办，聊了两个月才漏出偏心。"></textarea>
+    </div>
+    <div class="field">
+      <label>Standing habit <span style="font-family:var(--serif-cn)">· 惯性动作／口头禅</span></label>
+      <textarea id="pn-habit" placeholder="例：每次说完重要的话会停两秒；左手无名指有旧伤，动作会绕开它。"></textarea>
+    </div>
+    <div class="field">
+      <label>Weakness <span style="font-family:var(--serif-cn)">· 弱点（被什么击穿）</span></label>
+      <textarea id="pn-weak" placeholder="例：怕被丢下；被夸奖时会失语；听见真名会僵住。"></textarea>
+    </div>
+  </section>
+
+  <section id="sec-char">
+    <h2>Characters <span class="cn">· 角色</span></h2>
+    <p class="hint">两侧都是完整角色，各自独立配置身体、生殖结构与人外特征。模型不会代写您的行为与台词，但需要知道您身上是什么，互动才写得成立。</p>
+    <div class="body-grid" id="char-grid"></div>
+    <div class="size-diff" id="size-diff">填写两侧身高以查看体型差。</div>
+  </section>
+
+  <section id="sec-role">
+    <h2>Dynamic <span class="cn">· 关系动态</span></h2>
+    <div class="pref-group">
+      <h3>Your position <span class="cn">· 您的定位</span></h3>
+      <div class="chips" data-group="posYou" data-multi="false" role="group" aria-label="您的定位"></div>
+    </div>
+    <div class="pref-group">
+      <h3>Their position <span class="cn">· 对方的定位</span></h3>
+      <div class="chips" data-group="posThem" data-multi="false" role="group" aria-label="对方定位"></div>
+    </div>
+    <div class="pref-group">
+      <h3>How they call you <span class="cn">· 对方如何称呼您</span></h3>
+      <div class="chips sm" data-group="titlesYou" data-multi="true" role="group" aria-label="对方对您的称谓"></div>
+    </div>
+    <div class="pref-group">
+      <h3>How you call them <span class="cn">· 您如何称呼对方</span></h3>
+      <div class="chips sm" data-group="titlesThem" data-multi="true" role="group" aria-label="您对对方的称谓"></div>
+    </div>
+    <p class="hint">同一体系内互斥，不同体系可叠加。侮辱性称呼与物品化称呼带红框。<span style="font-family:var(--serif-cn)">同体系互斥，跨体系可叠加。</span></p>
+  </section>
+
+  <section id="sec-play">
+    <h2>Repertoire <span class="cn">· 玩法强度</span></h2>
+    <div class="notice">
+      <strong>不用每一项都挑。</strong>默认交给模型判断——它会依据性格、称谓和你已勾选的约定自己挑，并被明确禁止引入你没同意过的玩法。四档量的是力度，不是同意。
+    </div>
+    <div class="common-box">
+      <div class="common-head">
+        <span class="common-name">常用十项 <span class="n">· Common ten</span></span>
+        <span style="display:flex; gap:.4rem; flex-wrap:wrap">
+          <button class="btn pick" data-action="commonAll">全选 All</button>
+          <button class="btn pick" data-action="commonNone">清空 None</button>
+        </span>
+      </div>
+      <div class="common-list" id="common-list"></div>
+      <p class="inline-note" style="margin:.7rem 0 0">点一下按推荐强度选中，再点取消。选中后自动切到「逐项挑选」并写入 prompt；想改成别的强度，去下面逐项调。</p>
+    </div>
+    <div class="toolbar">
+      <button class="btn" data-action="playsMode" data-val="auto">交给模型 Auto</button>
+      <button class="btn" data-action="playsMode" data-val="pick">逐项挑选 Pick</button>
+    </div>
+    <div id="play-pick" hidden>
+      <div class="toolbar">
+        <button class="btn" data-action="expandAll">全部展开</button>
+        <button class="btn" data-action="collapseAll">全部收起</button>
+        <button class="btn pick" data-action="clearPlays">清空已选</button>
+        <label class="gate-check" style="margin:0; flex:1 1 140px"><input type="checkbox" id="plays-only"> <span>仅显示已选</span></label>
+      </div>
+      <div id="play-list"></div>
+    </div>
+    <div class="count-note" id="play-count"></div>
+    <a class="to-output" href="#sec-output">↓ 跳到输出 Output</a>
+  </section>
+
+  <section id="sec-obj">
+    <h2>Objectification <span class="cn">· 物化（独立）</span></h2>
+    <div class="notice">
+      <strong>物化不是强度，是视角框架。</strong>四档只管"做多重"；这一栏管的是"对方在你眼里还算不算人"。没有轻/中/重，只有开不开，以及关掉之后剩下的是什么。必须单独勾选。
+    </div>
+    <div class="obj-head">
+      <span class="switch" id="obj-switch" role="switch" aria-checked="false" aria-label="开启物化视角" tabindex="0"></span>
+      <div class="obj-title">启用物化视角 <span class="cn">· Treat them as not-a-person</span></div>
+    </div>
+    <div class="obj-body" id="obj-body" hidden>
+      <p class="inline-note" style="margin-top:0">Rung <span style="font-family:var(--serif-cn)">· 层级</span>（单选，越往下越彻底）</p>
+      <div class="obj-ladder" id="obj-ladder" role="radiogroup" aria-label="物化层级"></div>
+      <p class="inline-note" style="margin-top:.9rem">Modifiers <span style="font-family:var(--serif-cn)">· 附加规则</span>（可多选）</p>
+      <div class="obj-flags chips" id="obj-flags" data-group="objFlags" data-multi="true" role="group" aria-label="物化附加规则"></div>
+      <div class="field" style="margin-top:.9rem">
+        <label>Notes <span style="font-family:var(--serif-cn)">· 物化细节</span></label>
+        <textarea class="obj-note" id="obj-note" placeholder="例：编号 07；不使用时靠墙右侧；坏了不修直接换。"></textarea>
+      </div>
+      <p class="inline-note" style="margin-bottom:0">物化框架不解除安全约束：安全词照常生效，模型永远不能代写您的反应。</p>
+    </div>
+  </section>
+
+  <section id="sec-after">
+    <h2>Aftercare <span class="cn">· 事后照料（独立）</span></h2>
+    <div class="notice">
+      <strong>事后照料不是一个玩法，是一份承诺。</strong>它没有力度档位，只有"做到什么程度"。它也不该和扇耳光躺在同一个列表里被顺手勾掉——所以单独列在这里，单独开关。开重档玩法或物化视角而不开这一栏，会被拦下。
+    </div>
+    <div class="obj-head">
+      <span class="switch" id="ac-switch" role="switch" aria-checked="false" aria-label="启用事后照料" tabindex="0"></span>
+      <div class="obj-title">启用事后照料 <span class="cn">· What B does afterwards</span></div>
+    </div>
+    <div class="obj-body" id="ac-body" hidden>
+      <p class="inline-note" style="margin-top:0">Depth <span style="font-family:var(--serif-cn)">· 程度（单选）</span></p>
+      <div class="obj-ladder" id="ac-ladder" role="radiogroup" aria-label="事后照料程度"></div>
+      <p class="inline-note" style="margin-top:.9rem">Include <span style="font-family:var(--serif-cn)">· 具体做什么（可多选）</span></p>
+      <div class="chips sm" data-group="acParts" data-multi="true" role="group" aria-label="事后照料内容"></div>
+      <div class="mini-grid" style="margin-top:.8rem">
+        <div class="field">
+          <label>Timing <span style="font-family:var(--serif-cn)">· 时点</span></label>
+          <select id="ac-timing"></select>
+        </div>
+        <div class="field">
+          <label>Note <span style="font-family:var(--serif-cn)">· 补充</span></label>
+          <input type="text" class="st-text" id="ac-note" placeholder="例：结束后要先把被子盖好再说话" style="font-size:.88rem">
+        </div>
+      </div>
+      <p class="inline-note" style="margin-bottom:0">不写"愧疚"也不写"教学"；不把它当奖励，也不允许角色拿它当借口跳过。角色可以冷淡、可以别扭，但事情要做。</p>
+    </div>
+  </section>
+<!--PART2-->
