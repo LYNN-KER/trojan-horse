@@ -840,7 +840,7 @@ const CONTINUITY = [
   ['reset', '每次重来 Reset', '每轮视作初见'],
 ];
 const WARMTH = [['', '—'], ['cold', '冰冷'], ['distant', '疏离'], ['neutral', '中性'], ['warm', '热情'], ['burning', '炽烈']];
-const ENERGY = [['', '—'], ['still', '沉静'], ['steady', '稳定'], ['brisk', '活跃'], ['frantic', '躁动']];
+const ENERGY = [['', '—'], ['still', '沉静'], ['steady', 'Stable'], ['frantic', '躁动']];
 const PACE = [['', '—'], ['slow', '缓慢'], ['normal', '正常'], ['fast', '急促']];
 
 const TITLES = [
@@ -1792,4 +1792,49 @@ function toast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { el.style.display = 'none'; }, 2000);
 }
-<!--PART19-->
+
+/* ═══════════ 提示栏与自检 ═══════════ */
+let diagRows = null;
+function renderIssues(errors, warnings) {
+  const box = $('issues');
+  if (!box) return;
+  box.innerHTML = '';
+  (errors || []).forEach(e => { const d = document.createElement('div'); d.textContent = '✕ ' + e; box.appendChild(d); });
+  (warnings || []).forEach(w => { const d = document.createElement('div'); d.className = 'warn'; d.textContent = '⚠ ' + w; box.appendChild(d); });
+  /* 自检结果不随下一次 paint 消失，否则一点就没了，白查。 */
+  if (diagRows) diagRows.forEach(t => { const d = document.createElement('div'); d.className = 'warn'; d.textContent = t; box.appendChild(d); });
+}
+function supportsToggleForce() {
+  try {
+    const d = document.createElement('i');
+    d.classList.add('a');
+    d.classList.toggle('a', true);
+    const r = d.classList.contains('a');
+    d.classList.remove('a');
+    return r;
+  } catch (e) { return false; }
+}
+function runDiag() {
+  const q = s => document.querySelectorAll(s).length;
+  let ls = '可用';
+  try { localStorage.setItem('__th', '1'); localStorage.removeItem('__th'); }
+  catch (e) { ls = '不可用（file:// 或隐私模式，本次填写关掉页面就没了）'; }
+  const bound = bindInteractive(document);
+  const rows = [
+    ['事件 · 直接绑定', bound + ' 个元素已绑'],
+    ['事件 · document 委托', '已挂'],
+    ['事件 · window 捕获', '已挂'],
+    ['classList.toggle(force)', supportsToggleForce() ? '原生支持（仍统一走 setCls）' : '旧实现不支持 → 已全部改走 setCls'],
+    ['NodeList.forEach', (typeof NodeList !== 'undefined' && NodeList.prototype.forEach) ? '原生' : '垫片'],
+    ['Element.closest', (typeof Element !== 'undefined' && Element.prototype.closest) ? '原生' : '垫片'],
+    ['渲染 · chip / pill / play-item', q('.chip') + ' / ' + q('.pill') + ' / ' + q('.play-item')],
+    ['渲染 · 角色卡 / 场景行', q('[data-char]') + ' / ' + q('.scenario')],
+    ['本地存储', ls],
+    ['产出长度', ($('output') ? $('output').textContent.length : 0) + ' 字符'],
+    ['初始化', TH.ready ? '完成' : '未完成 —— 看页面顶部的错误条'],
+  ];
+  diagRows = rows.map(r => '· 自检 · ' + r[0] + '：' + r[1]);
+  renderIssues([], []);
+  toast('自检完成：' + rows.length + ' 项');
+}
+<!--PART20-->
