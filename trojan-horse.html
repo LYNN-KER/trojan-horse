@@ -954,7 +954,7 @@ const ST_TALK = [
   ['order', '命令式 Order', '"张嘴。" "把腿分开。" "夹紧。"'],
   ['press', '逼供式 Pressing', '"说，谁把你操成这样的。" "喜不喜欢，自己说。"'],
   ['own', '所有权 Ownership', '"这个穴是谁的。" "里面灌满了谁的东西。"'],
-  ['shame', '羞辱式 Humiliating', '"骚货，又湿了。" "当内便器舒不舒服。"'],
+  ['shame', '羞辱式 Humiliating', '"骚货，又湿了。" "当内便器舒舒服服。"'],
   ['threat', '威胁夸赞 Threat-praise', '"就这么紧，再夹就操烂你。" "里面好会吸，是不是欠干。"'],
 ];
 const ST_TALK_EN = {
@@ -1583,4 +1583,96 @@ function buildScenarios() {
     });
   });
 }
-<!--PART16-->
+
+function buildStatic() {
+  buildCharCards();
+  buildCommon();
+  fillChips('posYou', 'posYou', POSITIONS);
+  fillChips('posThem', 'posThem', POSITIONS);
+  fillChips('titlesYou', 'titlesYou', TITLES);
+  fillChips('titlesThem', 'titlesThem', TITLES);
+  fillChips('pnArch', 'pnArch', ARCHETYPES.map(a => [a[0], a[1]]));
+  fillChips('pnVoice', 'pnVoice', VOICES.map(a => [a[0], a[1]]));
+  fillChips('pnInit', 'pnInit', INITIATIVES.map(a => [a[0], a[1]]));
+  fillChips('pnCont', 'pnCont', CONTINUITY.map(a => [a[0], a[1]]));
+  $('pn-warmth').innerHTML = opts(WARMTH);
+  $('pn-energy').innerHTML = opts(ENERGY);
+  $('pn-pace').innerHTML = opts(PACE);
+
+  $('obj-ladder').innerHTML = ladderHtml('obj', OBJ_RUNGS);
+  OBJ_FLAGS.forEach(f => {
+    $('obj-flags').insertAdjacentHTML('beforeend',
+      `<span class="chip axis-flag" role="button" tabindex="0" aria-pressed="false" data-group="objFlags" data-val="${f.key}" title="${f.d}">${f.cn}</span>`);
+  });
+
+  $('ac-ladder').innerHTML = ladderHtml('after', AFTER_MODES);
+  fillChips('acParts', 'acParts', AFTER_PARTS.map(p => [p[0], p[1]]));
+  $('ac-timing').innerHTML = opts(AFTER_TIMING);
+
+  fillChips('stSenses', 'stSenses', ST_SENSES.map(s => [s[0], s[1]]));
+  fillChips('stTags', 'stTags', ST_TAGS.map(s => [s[0], s[1]]));
+  fillChips('stTalk', 'stTalk', ST_TALK.map(s => [s[0], s[1]]));
+  fillChips('stScope', 'stScope', ST_SCOPE.map(s => [s[0], s[1]]));
+  fillChips('stStages', 'stStages', ST_STAGES.map(s => [s[0], s[1]]));
+  fillChips('stLint', 'stLint', ST_LINT.map(s => [s[0], s[1]]));
+  $('st-min').innerHTML = opts([['2', '2 种'], ['3', '3 种'], ['4', '4 种'], ['5', '5 种']]);
+  $('st-person').innerHTML = opts(ST_PERSON);
+  $('st-length').innerHTML = opts(ST_LENGTH);
+
+  TONES.forEach(([v, l]) => {
+    $('tone-options').insertAdjacentHTML('beforeend',
+      `<span class="tone-chip" role="button" tabindex="0" aria-pressed="false" data-val="${v}">${l}</span>`);
+  });
+  $('import-file').addEventListener('change', onImportFile);
+}
+
+function onImportFile(e) {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try { applyState(JSON.parse(String(r.result))); hydrate(); paint(); alert('配置已导入。'); }
+    catch (err) { alert('导入失败：' + (err.message || err)); }
+  };
+  r.readAsText(f);
+  e.target.value = '';
+}
+
+function gateRemembered() { try { return localStorage.getItem(GATE_KEY) === 'ok'; } catch (e) { return false; } }
+function openGate() {
+  $('app').hidden = false; $('gone').hidden = true;
+  const g = $('gate');
+  g.hidden = false; g.scrollTop = 0; g.dataset.seen = '1';
+  $('gate-remember').checked = gateRemembered();
+  document.body.classList.add('gate-locked');
+  const target = $('gate-wrap') || $('gate-enter');
+  try { target.focus({ preventScroll: true }); } catch (e) { try { target.focus(); } catch (e2) {} }
+  g.scrollTop = 0;
+  g.classList.remove('gate-in');
+  requestAnimationFrame(() => requestAnimationFrame(() => g.classList.add('gate-in')));
+}
+function closeGate(remember) {
+  try { if (remember) localStorage.setItem(GATE_KEY, 'ok'); else localStorage.removeItem(GATE_KEY); } catch (e) {}
+  $('gate').hidden = true;
+  document.body.classList.remove('gate-locked');
+}
+function leaveApp() { closeGate(false); $('app').hidden = true; $('gone').hidden = false; }
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Tab') return;
+  const gate = document.getElementById('gate');
+  if (!gate || gate.hidden) return;
+  const f = gate.querySelectorAll('button, input, [href], [tabindex]:not([tabindex="-1"])');
+  if (!f.length) return;
+  const first = f[0], last = f[f.length - 1];
+  if (!gate.contains(document.activeElement)) { e.preventDefault(); first.focus(); return; }
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+}, true);
+
+function toggleCommon(en) {
+  if (state.plays[en]) delete state.plays[en];
+  else { const def = COMMON.find(c => c.en === en); state.plays[en] = def ? def.lv : 'medium'; }
+  if (state.playsMode !== 'pick') state.playsMode = 'pick';
+  paint();
+}
+<!--PART17-->
