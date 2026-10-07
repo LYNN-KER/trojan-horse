@@ -1,86 +1,75 @@
 
-function buildCommon() {
-  $('common-list').innerHTML = COMMON.map(c =>
-    `<span class="common-chip" role="button" tabindex="0" aria-pressed="false" data-common="${c.en}" title="${c.en} · ${LEVEL_EN[c.lv]}">${playCn(c.en)}<span class="lv">${LEVEL_CN[c.lv]}</span></span>`
-  ).join('');
+function buildStatic() {
+  buildCharCards();
+  buildCommon();
+  fillChips('posYou', 'posYou', POSITIONS);
+  fillChips('posThem', 'posThem', POSITIONS);
+  fillChips('titlesYou', 'titlesYou', TITLES);
+  fillChips('titlesThem', 'titlesThem', TITLES);
+  fillChips('pnArch', 'pnArch', ARCHETYPES.map(a => [a[0], a[1]]));
+  fillChips('pnVoice', 'pnVoice', VOICES.map(a => [a[0], a[1]]));
+  fillChips('pnInit', 'pnInit', INITIATIVES.map(a => [a[0], a[1]]));
+  fillChips('pnCont', 'pnCont', CONTINUITY.map(a => [a[0], a[1]]));
+  $('pn-warmth').innerHTML = opts(WARMTH);
+  $('pn-energy').innerHTML = opts(ENERGY);
+  $('pn-pace').innerHTML = opts(PACE);
+
+  $('obj-ladder').innerHTML = ladderHtml('obj', OBJ_RUNGS);
+  OBJ_FLAGS.forEach(f => {
+    $('obj-flags').insertAdjacentHTML('beforeend',
+      `<span class="chip axis-flag" role="button" tabindex="0" aria-pressed="false" data-group="objFlags" data-val="${f.key}" title="${f.d}">${f.cn}</span>`);
+  });
+
+  $('ac-ladder').innerHTML = ladderHtml('after', AFTER_MODES);
+  fillChips('acParts', 'acParts', AFTER_PARTS.map(p => [p[0], p[1]]));
+  $('ac-timing').innerHTML = opts(AFTER_TIMING);
+
+  fillChips('stSenses', 'stSenses', ST_SENSES.map(s => [s[0], s[1]]));
+  fillChips('stTags', 'stTags', ST_TAGS.map(s => [s[0], s[1]]));
+  fillChips('stTalk', 'stTalk', ST_TALK.map(s => [s[0], s[1]]));
+  fillChips('stScope', 'stScope', ST_SCOPE.map(s => [s[0], s[1]]));
+  fillChips('stStages', 'stStages', ST_STAGES.map(s => [s[0], s[1]]));
+  fillChips('stLint', 'stLint', ST_LINT.map(s => [s[0], s[1]]));
+  $('st-min').innerHTML = opts([['2', '2 种'], ['3', '3 种'], ['4', '4 种'], ['5', '5 种']]);
+  $('st-person').innerHTML = opts(ST_PERSON);
+  $('st-length').innerHTML = opts(ST_LENGTH);
+
+  TONES.forEach(([v, l]) => {
+    $('tone-options').insertAdjacentHTML('beforeend',
+      `<span class="tone-chip" role="button" tabindex="0" aria-pressed="false" data-val="${v}">${l}</span>`);
+  });
+  $('import-file').addEventListener('change', onImportFile);
 }
 
-function buildPlayList() {
-  const mobile = window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
-  const box = $('play-list');
-  box.innerHTML = '';
-  PLAYS.forEach(group => {
-    const d = document.createElement('details');
-    d.className = 'pg'; d.dataset.cat = group.cat; d.open = !mobile;
-    const sum = document.createElement('summary');
-    sum.innerHTML = `<span class="pg-name">${group.cat}</span><span class="pg-count">${group.items.length} 项</span>`;
-    d.appendChild(sum);
-    const body = document.createElement('div');
-    body.className = 'pg-body';
-    group.items.forEach(item => {
-      const wrap = document.createElement('div');
-      wrap.className = 'play-item'; wrap.dataset.play = item.en;
-      const lab = document.createElement('span');
-      lab.className = 'play-label';
-      lab.setAttribute('role', 'button');
-      lab.setAttribute('aria-expanded', 'false');
-      lab.tabIndex = 0;
-      lab.title = item.d;
-      lab.innerHTML = item.en + '<span class="cn">' + item.cn + '</span><span class="info" aria-hidden="true">i</span><span class="caret">▸</span>';
-      const pills = document.createElement('div');
-      pills.className = 'intensity-pills';
-      pills.setAttribute('role', 'radiogroup');
-      pills.setAttribute('aria-label', item.en + ' ' + item.cn);
-      LEVELS.forEach((l, i) => {
-        const p = document.createElement('span');
-        p.className = 'pill ' + l.cls;
-        p.setAttribute('role', 'radio');
-        p.setAttribute('aria-checked', 'false');
-        p.tabIndex = i === 0 ? 0 : -1;
-        p.dataset.play = item.en; p.dataset.level = l.label.toLowerCase();
-        p.textContent = l.cn; p.title = l.label + ' · ' + item.cn;
-        pills.appendChild(p);
-      });
-      const row = document.createElement('div');
-      row.className = 'intensity-row';
-      row.appendChild(lab); row.appendChild(pills);
-      const desc = document.createElement('div');
-      desc.className = 'play-desc'; desc.hidden = true; desc.textContent = item.d;
-      wrap.appendChild(row); wrap.appendChild(desc);
-      body.appendChild(wrap);
-    });
-    d.appendChild(body);
-    box.appendChild(d);
-  });
+function onImportFile(e) {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try { applyState(JSON.parse(String(r.result))); hydrate(); paint(); alert('配置已导入。'); }
+    catch (err) { alert('导入失败：' + (err.message || err)); }
+  };
+  r.readAsText(f);
+  e.target.value = '';
 }
 
-function buildScenarios() {
-  const box = $('scenario-list');
-  box.innerHTML = '';
-  [['base', 'Prerequisite agreements 前提约定'], ['scene', 'Scene switches 场景开关']].forEach(([tier, label]) => {
-    const h = document.createElement('div');
-    h.className = 'scen-group'; h.textContent = label;
-    box.appendChild(h);
-    SCENARIOS.filter(s => s.tier === tier).forEach(s => {
-      const row = document.createElement('div');
-      row.className = 'scenario'; row.dataset.key = s.key;
-      const sw = document.createElement('span');
-      sw.className = 'switch';
-      sw.setAttribute('role', 'switch'); sw.setAttribute('aria-checked', 'false');
-      sw.setAttribute('aria-label', s.en + ' ' + s.cn); sw.tabIndex = 0;
-      const b = document.createElement('div'); b.className = 'scenario-body';
-      const t = document.createElement('div');
-      t.className = 'scenario-title'; t.innerHTML = s.en + '<span class="cn">' + s.cn + '</span>';
-      const d = document.createElement('div');
-      d.className = 'scenario-desc'; d.textContent = s.desc;
-      const n = document.createElement('input');
-      n.type = 'text'; n.className = 'scenario-note';
-      n.placeholder = '成立条件：场景 / 同意状态 / 退出方式';
-      n.disabled = true; n.setAttribute('aria-label', s.en + ' 成立条件');
-      b.appendChild(t); b.appendChild(d); b.appendChild(n);
-      row.appendChild(sw); row.appendChild(b);
-      box.appendChild(row);
-    });
-  });
+function gateRemembered() { try { return localStorage.getItem(GATE_KEY) === 'ok'; } catch (e) { return false; } }
+function openGate() {
+  $('app').hidden = false; $('gone').hidden = true;
+  const g = $('gate');
+  g.hidden = false; g.scrollTop = 0; g.dataset.seen = '1';
+  $('gate-remember').checked = gateRemembered();
+  document.body.classList.add('gate-locked');
+  const target = $('gate-wrap') || $('gate-enter');
+  try { target.focus({ preventScroll: true }); } catch (e) { try { target.focus(); } catch (e2) {} }
+  g.scrollTop = 0;
+  g.classList.remove('gate-in');
+  requestAnimationFrame(() => requestAnimationFrame(() => g.classList.add('gate-in')));
 }
-<!--PART25-->
+function closeGate(remember) {
+  try { if (remember) localStorage.setItem(GATE_KEY, 'ok'); else localStorage.removeItem(GATE_KEY); } catch (e) {}
+  $('gate').hidden = true;
+  document.body.classList.remove('gate-locked');
+}
+function leaveApp() { closeGate(false); $('app').hidden = true; $('gone').hidden = false; }
+<!--PART26-->
