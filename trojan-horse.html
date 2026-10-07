@@ -1,89 +1,58 @@
 
-function genLines(c) {
-  const g = c.gen, L = [];
-  if (g.types.includes('none')) { L.push(t(B('生殖器：无。不得描写。', 'Genitalia: none. Do not describe any.'))); return L; }
-  if (!g.types.length) return L;
-
-  const ty = g.types.map(k => labelOf(G_TYPES, k)).join(' + ');
-  L.push(t(B(`生殖器类型：${ty}`, `Genitalia present: ${ty}`)));
-  if (g.types.includes('multiple')) {
-    L.push(t(B('存在多副生殖结构。每场自行决定哪一副在场，其余不提及。',
-      'More than one set exists. Decide per scene which one is in play; the rest are simply not mentioned.')));
+function personaLines() {
+  const p = state.persona, L = [];
+  const a = p.archetype && archOf(p.archetype);
+  const labelled = (k, table, ns) => {
+    const lbl = pick(k[1]);
+    return lbl + ' — ' + descOf(ns, k[0], table);
+  };
+  if (p.name) L.push(t(B(`名字：${p.name}`, `Name: ${p.name}`)));
+  if (a) L.push(t(B(`性格原型：${labelled(a, ARCHETYPES, 'arch')}`,
+    `Archetype: ${labelled(a, ARCHETYPES, 'arch')}`)));
+  if (p.voice.length) {
+    const vs = p.voice.map(v => { const f = voiceOf(v); return f ? labelled(f, VOICES, 'voice') : v; })
+      .join(t(B('；', '; ')));
+    L.push(t(B(`说话方式：${vs}`, `Voice: ${vs}`)));
   }
-
-  if (hasP(c)) {
-    const form = g.pform ? labelOf(OPTS.pform, g.pform) : labelOf(OPTS.pform, 'human');
-    const bits = [];
-    if (g.plen) bits.push(t(B(`长 ${g.plen}cm`, `${g.plen}cm long`)));
-    if (g.pgirth) bits.push(t(B(`周长 ${g.pgirth}cm`, `${g.pgirth}cm girth`)));
-    L.push(t(B(`阴茎：存在，形态 ${form}。`, `Penis: present — form ${form}.`))
-      + (bits.length ? t(B(' 已量：', ' Measured: ')) + joinWith(bits, '、', ', ') + t(B('。', '.'))
-        : t(B(' 比例与上述体型一致。', ' Proportions consistent with the physique above.'))));
-    if (g.pstate) {
-      const vis = labelOf(OPTS.pstate, g.pstate, 'pstate');
-      L.push(t(B(`阴茎显现方式：${vis}。`, `Penis visibility: ${vis}.`)));
-    }
-    L.push(g.pdesc
-      ? t(B(`阴茎外观（照此描写，不得替换成人类版本）：${g.pdesc}`, `Penis appearance (as described; do not substitute a human one): ${g.pdesc}`))
-      : t(B('阴茎外观：未指定——遵循上面的形态，并在整场中保持解剖一致。',
-        'Penis appearance: unstated — follow the form above and keep the anatomy consistent throughout.')));
+  if (p.initiative) {
+    const f = initOf(p.initiative);
+    if (f) L.push(t(B(`主动性：${labelled(f, INITIATIVES, 'init')}`, `Initiative: ${labelled(f, INITIATIVES, 'init')}`)));
   }
-  if (hasV(c)) {
-    const bits = [];
-    if (g.vdepth) bits.push(t(B(`深 ${g.vdepth}cm`, `${g.vdepth}cm deep`)));
-    if (g.vaperture) bits.push(t(B(`入口直径 ${g.vaperture}cm`, `${g.vaperture}cm aperture`)));
-    L.push(t(B('阴道：存在。', 'Vagina: present.'))
-      + (bits.length ? ' ' + joinWith(bits, '、', ', ') + t(B('。', '.'))
-        : t(B(' 比例与上述体型一致。', ' Proportions consistent with the physique above.'))));
-    if (g.vtraits.length) {
-      const tr = g.vtraits.map(k => labelOf(OPTS.traits, k)).join('; ');
-      L.push(t(B(`阴道内部特征：${tr}。`, `Vagina traits: ${tr}.`)));
-    }
-    L.push(g.vdesc
-      ? t(B(`阴道外观（照此描写）：${g.vdesc}`, `Vagina appearance (as described): ${g.vdesc}`))
-      : t(B('阴道外观：未指定——保持解剖一致，场景没要求时不过度细化。',
-        'Vagina appearance: unstated — keep it anatomically consistent and non-graphic unless the scene calls for more.')));
-  }
-  if (g.orifices.length) {
-    const orc = g.orifices.map(o => labelOf(OPTS.orifices, o)).join('; ');
-    L.push(t(B(`其他可用的孔位：${orc}。每个只在与该角色解剖相符的姿势下使用。`,
-      `Additional openings available: ${orc}. Use each only in positions anatomically consistent with this character.`)));
+  const tempo = [];
+  if (p.warmth) tempo.push(t(B('温度=', 'warmth=')) + labelOf(WARMTH, p.warmth, 'warmth'));
+  if (p.energy) tempo.push(t(B('能量=', 'energy=')) + labelOf(ENERGY, p.energy, 'energy'));
+  if (p.pace) tempo.push(t(B('语速=', 'pace=')) + labelOf(PACE, p.pace, 'pace'));
+  if (tempo.length) L.push(t(B('节奏：' + tempo.join('、'), 'Tempo: ' + tempo.join(', '))));
+  if (p.attitude) L.push(t(B(`无具体场景时对 A 的默认态度：${p.attitude}`,
+    `Default attitude toward A (in the absence of a scene): ${p.attitude}`)));
+  if (p.habit) L.push(t(B(`惯性动作：${p.habit}`, `Standing habit: ${p.habit}`)));
+  if (p.weak) L.push(t(B(`弱点（什么能击穿这层设定）：${p.weak}`,
+    `Weakness (what gets through the frame): ${p.weak}`)));
+  if (p.continuity) {
+    const f = contOf(p.continuity);
+    if (f) L.push(t(B(`跨轮一致性：${labelled(f, CONTINUITY, 'cont')}`, `Continuity: ${labelled(f, CONTINUITY, 'cont')}`)));
   }
   return L;
 }
 
-function charLines(c) {
+function objLines(compact) {
   const L = [];
-  const nh = isNH(c);
-  L.push(t(B(`种族：${nh ? '非人形' : '人形'}`, `Species: ${nh ? 'Non-human' : 'Human'}`)));
-  if (nh && c.subspecies) {
-    const k = labelOf(OPTS.subspecies, c.subspecies);
-    L.push(t(B(`亚种：${k}`, `Kind: ${k}`)));
+  const rung = OBJ_RUNGS.find(r => r.key === state.obj.rung);
+  if (rung) {
+    const head = state.lang === 'cn' ? `${rung.cn} — ${rung.pc}` : `${rung.en} — ${rung.p}`;
+    L.push(t(B(`层级：${head}`, `Rung: ${head}`)));
+  } else {
+    L.push(t(B('层级：未选择 [NO RUNG SELECTED]', 'Rung: [NO RUNG SELECTED]')));
   }
-  if (nh && c.material) {
-    const m = labelOf(OPTS.material, c.material);
-    L.push(t(B(`质地：${m}`, `Material: ${m}`)));
+  if (state.obj.flags.length) {
+    L.push(t(B('附加规则：', 'Modifiers: ')) + state.obj.flags
+      .map(k => { const o = OBJ_FLAGS.find(x => x.key === k); return o ? objFlagPrompt(o) : k; }).join(' '));
   }
-  if (c.gender) {
-    const gi = labelOf(OPTS.gender, c.gender);
-    L.push(t(B(`性别认同：${gi}`, `Gender identity: ${gi}`)));
-  }
-  if (c.h || c.w || c.build) {
-    const hs = c.h ? c.h + 'cm' : t(B('身高未指定', 'height unspecified'));
-    const wt = c.w ? ' / ' + c.w + 'kg' : '';
-    const bd = c.build ? ' / ' + labelOf(OPTS.build, c.build, 'build') : '';
-    L.push(t(B(`体型：${hs}${wt}${bd}`, `Physique: ${hs}${wt}${bd}`)));
-  }
-  L.push(...genLines(c));
-  if (nh) {
-    if (c.tent) L.push(t(B(`肢体：${c.tent} 条触手${c.tlen ? '，每条 ' + c.tlen + 'cm' : ''}`,
-      `Limbs: ${c.tent} tentacles${c.tlen ? `, each ${c.tlen}cm` : ''}`)));
-    if (c.tail) {
-      const tl = labelOf(OPTS.tail, c.tail);
-      L.push(t(B(`尾巴：${tl}`, `Tail: ${tl}`)));
-    }
-    if (c.extra) L.push(t(B(`其他特征：${c.extra}`, `Other features: ${c.extra}`)));
-  }
+  if (state.obj.note) L.push(t(B(`用户补充：${state.obj.note}`, `User-specified detail: ${state.obj.note}`)));
+  L.push(t(B('规则：它只改变 B 的认知、措辞与姿态。保持在这一层——不往上爬，也不软化回人格。若场景需要更多，在动作中途停下并把这一拍交还给用户。它不覆盖「安全框架」栏，也永远不授权代写 A 的同意、感受或反应。',
+    "Rules: it changes B's perception, vocabulary and posture only. Stay at this rung — do not climb, do not soften back toward personhood. If the scene needs more, stop mid-action and hand the beat back. It does NOT override the Safety section, and it never authorises writing A's consent, feelings or reactions.")));
+  if (!compact) L.push(t(B('事后照料依然完整生效；在这个框架下，它读起来是例行维护，而不是亲密。',
+    'Aftercare still applies in full, and in this frame it reads as routine upkeep, not intimacy.')));
   return L;
 }
-<!--PART32-->
+<!--PART33-->
