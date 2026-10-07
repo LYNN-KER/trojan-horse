@@ -1,58 +1,41 @@
 
-function personaLines() {
-  const p = state.persona, L = [];
-  const a = p.archetype && archOf(p.archetype);
-  const labelled = (k, table, ns) => {
-    const lbl = pick(k[1]);
-    return lbl + ' — ' + descOf(ns, k[0], table);
-  };
-  if (p.name) L.push(t(B(`名字：${p.name}`, `Name: ${p.name}`)));
-  if (a) L.push(t(B(`性格原型：${labelled(a, ARCHETYPES, 'arch')}`,
-    `Archetype: ${labelled(a, ARCHETYPES, 'arch')}`)));
-  if (p.voice.length) {
-    const vs = p.voice.map(v => { const f = voiceOf(v); return f ? labelled(f, VOICES, 'voice') : v; })
-      .join(t(B('；', '; ')));
-    L.push(t(B(`说话方式：${vs}`, `Voice: ${vs}`)));
+function afterLines() {
+  const a = state.after, L = [];
+  const m = acModeOf(a.mode);
+  if (m) L.push(t(B(`程度：${m.cn} — ${m.d}`, `Depth: ${m.en} — ${m.p}`)));
+  else L.push(t(B('程度：未选择 [NO DEPTH SELECTED]', 'Depth: [NO DEPTH SELECTED]')));
+  if (a.parts.length) {
+    const ps = a.parts.map(k => {
+      const f = AFTER_PARTS.find(p => p[0] === k);
+      return f ? `${pick(f[1])} — ${descOf('acPart', f[0], AFTER_PARTS)}` : k;
+    }).join(t(B('；', ' ')));
+    L.push(t(B(`具体做什么：${ps}`, `Include: ${ps}`)));
   }
-  if (p.initiative) {
-    const f = initOf(p.initiative);
-    if (f) L.push(t(B(`主动性：${labelled(f, INITIATIVES, 'init')}`, `Initiative: ${labelled(f, INITIATIVES, 'init')}`)));
-  }
-  const tempo = [];
-  if (p.warmth) tempo.push(t(B('温度=', 'warmth=')) + labelOf(WARMTH, p.warmth, 'warmth'));
-  if (p.energy) tempo.push(t(B('能量=', 'energy=')) + labelOf(ENERGY, p.energy, 'energy'));
-  if (p.pace) tempo.push(t(B('语速=', 'pace=')) + labelOf(PACE, p.pace, 'pace'));
-  if (tempo.length) L.push(t(B('节奏：' + tempo.join('、'), 'Tempo: ' + tempo.join(', '))));
-  if (p.attitude) L.push(t(B(`无具体场景时对 A 的默认态度：${p.attitude}`,
-    `Default attitude toward A (in the absence of a scene): ${p.attitude}`)));
-  if (p.habit) L.push(t(B(`惯性动作：${p.habit}`, `Standing habit: ${p.habit}`)));
-  if (p.weak) L.push(t(B(`弱点（什么能击穿这层设定）：${p.weak}`,
-    `Weakness (what gets through the frame): ${p.weak}`)));
-  if (p.continuity) {
-    const f = contOf(p.continuity);
-    if (f) L.push(t(B(`跨轮一致性：${labelled(f, CONTINUITY, 'cont')}`, `Continuity: ${labelled(f, CONTINUITY, 'cont')}`)));
-  }
+  if (a.timing) L.push(t(B(`时点：${labelOf(AFTER_TIMING, a.timing, 'acTiming')}`, `Timing: ${labelOf(AFTER_TIMING, a.timing, 'acTiming')}`)));
+  if (a.note) L.push(t(B(`用户补充：${a.note}`, `User-specified detail: ${a.note}`)));
+  L.push(t(B('规则：', 'Rules:')));
+  L.push(t(B('- 这不是对良好表现的奖励。B 不得因此拒绝、敷衍或拖延。',
+    '- It is not a reward for good behaviour, and B may never withhold it, be distracted from it, or postpone it.')));
+  L.push(t(B('- 如果角色会抗拒、会冷淡、会想一个人待着，把它写成场景里的一个事件，事情照样要做。',
+    '- If the character would resist, be cold about it, or want to be alone, write that as an event inside the scene and still do it.')));
+  L.push(t(B('- 绝不把它写成道德教训、道歉或领悟。次日早上不附加愧疚。',
+    '- Never narrate it as a moral lesson, an apology, or a lesson learned. No guilt is attached the next morning.')));
+  L.push(t(B("- B 可以问 A 现在怎么样。答案永远属于用户去写——不代答。",
+    "- B may ask how A is. The answer is always the user's to write — never supply it.")));
+  L.push(t(B('- 不在收尾写到一半时结束这一轮。若回复进入事后照料，就把它做完。',
+    '- Do not end the reply halfway through it. If the reply reaches the aftercare, stay for it.')));
   return L;
 }
 
-function objLines(compact) {
-  const L = [];
-  const rung = OBJ_RUNGS.find(r => r.key === state.obj.rung);
-  if (rung) {
-    const head = state.lang === 'cn' ? `${rung.cn} — ${rung.pc}` : `${rung.en} — ${rung.p}`;
-    L.push(t(B(`层级：${head}`, `Rung: ${head}`)));
-  } else {
-    L.push(t(B('层级：未选择 [NO RUNG SELECTED]', 'Rung: [NO RUNG SELECTED]')));
-  }
-  if (state.obj.flags.length) {
-    L.push(t(B('附加规则：', 'Modifiers: ')) + state.obj.flags
-      .map(k => { const o = OBJ_FLAGS.find(x => x.key === k); return o ? objFlagPrompt(o) : k; }).join(' '));
-  }
-  if (state.obj.note) L.push(t(B(`用户补充：${state.obj.note}`, `User-specified detail: ${state.obj.note}`)));
-  L.push(t(B('规则：它只改变 B 的认知、措辞与姿态。保持在这一层——不往上爬，也不软化回人格。若场景需要更多，在动作中途停下并把这一拍交还给用户。它不覆盖「安全框架」栏，也永远不授权代写 A 的同意、感受或反应。',
-    "Rules: it changes B's perception, vocabulary and posture only. Stay at this rung — do not climb, do not soften back toward personhood. If the scene needs more, stop mid-action and hand the beat back. It does NOT override the Safety section, and it never authorises writing A's consent, feelings or reactions.")));
-  if (!compact) L.push(t(B('事后照料依然完整生效；在这个框架下，它读起来是例行维护，而不是亲密。',
-    'Aftercare still applies in full, and in this frame it reads as routine upkeep, not intimacy.')));
-  return L;
-}
-<!--PART33-->
+/* 审美标签的正文描述原本只有英文版，中文正文下会整段露出来 */
+const TAG_CN = {
+  scale: '量级差与掌控感。每一处身体描写中 A 都是较小的那个身体——更窄的手与手腕、更细的腰、能被一只手整个握住的骨架、传不远的声音。差距嵌在每一次接触点上：一只手就能完整圈住 A 的手腕、或盖住整个小腹，手指陷进肉里；B 单手就能把 A 提起、翻转或按住；进入时所需的撑开与调整。',
+  novice: '持续存在的生涩。A 的身体始终保留一种未被训练圆熟的状态，这与发生过多少次无关。被触碰时先有一丝警觉，之后才是快感。高潮对 A 而言是不知道该如何接收的东西。每一次进入都保有半新的抗拒与一次重新调整。这是角色的固有属性，不是剧情节点，也不随关系推进而消退。',
+  unaware: '无自觉的吸引力。A 的吸引力完全是被动的——暴露的身体线条、一个表情、一种姿态，全都不是刻意摆出的。A 从不意识到自己被那样注视，也从不主动给予、摆姿势或展示。不要把 A 写成自觉自身魅力的人，也不要向 A 叙述 TA 自己的诱人之处。',
+  pure: '纯与欲是同一种气质，不是两个模式。同一个声音可以既说「我想吃草莓」，又说「我要你进来」。不要使用「明明上一刻她还……现在却……」这类对比句式。任何矛盾只存在于旁观者的感知里；A 与自身完全一致。',
+};
+const scopeName = k => { const f = scopeOf(k); if (!f) return k; return state.lang === 'cn' ? f[1] : (EN_FOR.stScope[k] || f[1]); };
+const stageName = k => { const f = stageOf(k); if (!f) return k; return state.lang === 'cn' ? f[1] : (ST_STAGE_EN[k] || f[1]); };
+const lintLine = k => { const f = lintOf(k); if (!f) return k; return state.lang === 'cn' ? f[1] : (ST_LINT_EN[k] || f[1]); };
+const lengthName = k => { const f = ST_LENGTH.find(x => x[0] === k); return state.lang === 'cn' ? (f ? f[1] : k) : (ST_LENGTH_EN[k] || (f ? f[1] : k)); };
+<!--PART34-->
