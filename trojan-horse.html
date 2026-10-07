@@ -1,91 +1,89 @@
 
-const archOf = k => ARCHETYPES.find(a => a[0] === k);
-const voiceOf = k => VOICES.find(a => a[0] === k);
-const initOf = k => INITIATIVES.find(a => a[0] === k);
-const contOf = k => CONTINUITY.find(a => a[0] === k);
-const tagOf = k => ST_TAGS.find(t => t[0] === k);
-const talkOf = k => ST_TALK.find(t => t[0] === k);
-const stageOf = k => ST_STAGES.find(t => t[0] === k);
-const scopeOf = k => ST_SCOPE.find(t => t[0] === k);
-const senseOf = k => ST_SENSES.find(t => t[0] === k);
-const lintOf = k => ST_LINT.find(t => t[0] === k);
-const acModeOf = k => AFTER_MODES.find(m => m.key === k);
-const bannedList = () => state.style.banned.split(/[,，、]/).map(s => s.trim()).filter(Boolean);
+function genLines(c) {
+  const g = c.gen, L = [];
+  if (g.types.includes('none')) { L.push(t(B('生殖器：无。不得描写。', 'Genitalia: none. Do not describe any.'))); return L; }
+  if (!g.types.length) return L;
 
-function lintBanned() {
-  const banned = bannedList();
-  if (!banned.length) return [];
-  const targets = [
-    ['硬性边界', state.safety.limits], ['物化细节', state.obj.note], ['事后照料·补充', state.after.note],
-    ['性格·默认态度', state.persona.attitude], ['性格·惯性动作', state.persona.habit],
-    ['性格·弱点', state.persona.weak],
-    ['您的阴茎外观', state.you.gen.pdesc], ['您的阴道外观', state.you.gen.vdesc],
-    ['模型阴茎外观', state.them.gen.pdesc], ['模型阴道外观', state.them.gen.vdesc],
-    ['模型其他特征', state.them.extra],
-  ];
-  SCENARIOS.forEach(s => { const v = state.scenarios[s.key]; if (v && v.on) targets.push(['场景 ' + s.cn, v.note]); });
-  const hits = [];
-  targets.forEach(([who, txt]) => {
-    if (!txt) return;
-    banned.forEach(w => { if (txt.includes(w)) hits.push(w + '（' + who + '）'); });
-  });
-  return hits.filter(function (v, i, a) { return a.indexOf(v) === i; });
-}
+  const ty = g.types.map(k => labelOf(G_TYPES, k)).join(' + ');
+  L.push(t(B(`生殖器类型：${ty}`, `Genitalia present: ${ty}`)));
+  if (g.types.includes('multiple')) {
+    L.push(t(B('存在多副生殖结构。每场自行决定哪一副在场，其余不提及。',
+      'More than one set exists. Decide per scene which one is in play; the rest are simply not mentioned.')));
+  }
 
-function verifyBuild() {
-  const containerGroups = ['posYou', 'posThem', 'titlesYou', 'titlesThem',
-    'pnArch', 'pnVoice', 'pnInit', 'pnCont', 'acParts',
-    'gTypesYou', 'gTypesThem', 'pformYou', 'pformThem',
-    'vtraitsYou', 'vtraitsThem', 'orificesYou', 'orificesThem', 'objFlags',
-    'stSenses', 'stTags', 'stTalk', 'stScope', 'stStages', 'stLint'];
-  const empty = containerGroups.filter(g => {
-    const box = document.querySelector(`[data-group="${g}"]`);
-    return !box || box.querySelectorAll('.chip').length === 0;
-  });
-  if (empty.length) throw new Error('以下选项组渲染为空：' + empty.join(', '));
-
-  if (document.querySelectorAll('#char-grid [data-char]').length !== 2) throw new Error('角色卡渲染不全');
-  if (document.querySelectorAll('#common-list .common-chip').length !== COMMON.length) throw new Error('常用十项渲染不全');
-  if (document.querySelectorAll('#obj-ladder .ladder-row').length !== OBJ_RUNGS.length) throw new Error('物化阶梯渲染不全');
-  if (document.querySelectorAll('#ac-ladder .ladder-row').length !== AFTER_MODES.length) throw new Error('事后照料阶梯渲染不全');
-  const total = PLAYS.reduce((n, g) => n + g.items.length, 0);
-  const plays = document.querySelectorAll('#play-list .play-item').length;
-  if (plays !== total) throw new Error(`玩法项渲染不全：${plays}/${total}`);
-  if (document.querySelectorAll('#play-list details.pg').length !== PLAYS.length) throw new Error('玩法分组渲染不全');
-  const scen = document.querySelectorAll('#scenario-list .scenario').length;
-  if (scen !== SCENARIOS.length) throw new Error(`场景渲染不全：${scen}/${SCENARIOS.length}`);
-  const tones = document.querySelectorAll('#tone-options .tone-chip').length;
-  if (tones !== TONES.length) throw new Error(`语气渲染不全：${tones}/${TONES.length}`);
-  for (const c of CHARS) {
-    for (const f of ['species', 'gender', 'h', 'w', 'build', 'pstate', 'material', 'tail', 'pdesc', 'vdesc', 'extra']) {
-      if (document.querySelector(`[data-char="${c.key}"] [data-f="${f}"]`) === null) throw new Error(`${c.en} 缺少字段 ${f}`);
+  if (hasP(c)) {
+    const form = g.pform ? labelOf(OPTS.pform, g.pform) : labelOf(OPTS.pform, 'human');
+    const bits = [];
+    if (g.plen) bits.push(t(B(`长 ${g.plen}cm`, `${g.plen}cm long`)));
+    if (g.pgirth) bits.push(t(B(`周长 ${g.pgirth}cm`, `${g.pgirth}cm girth`)));
+    L.push(t(B(`阴茎：存在，形态 ${form}。`, `Penis: present — form ${form}.`))
+      + (bits.length ? t(B(' 已量：', ' Measured: ')) + joinWith(bits, '、', ', ') + t(B('。', '.'))
+        : t(B(' 比例与上述体型一致。', ' Proportions consistent with the physique above.'))));
+    if (g.pstate) {
+      const vis = labelOf(OPTS.pstate, g.pstate, 'pstate');
+      L.push(t(B(`阴茎显现方式：${vis}。`, `Penis visibility: ${vis}.`)));
     }
+    L.push(g.pdesc
+      ? t(B(`阴茎外观（照此描写，不得替换成人类版本）：${g.pdesc}`, `Penis appearance (as described; do not substitute a human one): ${g.pdesc}`))
+      : t(B('阴茎外观：未指定——遵循上面的形态，并在整场中保持解剖一致。',
+        'Penis appearance: unstated — follow the form above and keep the anatomy consistent throughout.')));
   }
-  for (const id of ['pn-name', 'pn-attitude', 'pn-habit', 'pn-weak', 'pn-warmth', 'pn-energy', 'pn-pace',
-    'common-list', 'play-pick', 'play-list', 'play-count', 'plays-only',
-    'obj-note', 'obj-switch', 'obj-ladder', 'obj-body',
-    'ac-switch', 'ac-body', 'ac-ladder', 'ac-timing', 'ac-note',
-    'st-switch', 'st-body', 'st-vocab', 'st-banned', 'st-sounds', 'st-min', 'st-person', 'st-length', 'st-pronoun',
-    'safeword', 'aftercare', 'limits',
-    'output', 'copy-btn', 'import-file', 'share-out', 'share-cap', 'lang-btn',
-    'gate-wrap', 'gate-enter', 'gate-remember']) {
-    if (!document.getElementById(id)) throw new Error('缺少元素 #' + id);
+  if (hasV(c)) {
+    const bits = [];
+    if (g.vdepth) bits.push(t(B(`深 ${g.vdepth}cm`, `${g.vdepth}cm deep`)));
+    if (g.vaperture) bits.push(t(B(`入口直径 ${g.vaperture}cm`, `${g.vaperture}cm aperture`)));
+    L.push(t(B('阴道：存在。', 'Vagina: present.'))
+      + (bits.length ? ' ' + joinWith(bits, '、', ', ') + t(B('。', '.'))
+        : t(B(' 比例与上述体型一致。', ' Proportions consistent with the physique above.'))));
+    if (g.vtraits.length) {
+      const tr = g.vtraits.map(k => labelOf(OPTS.traits, k)).join('; ');
+      L.push(t(B(`阴道内部特征：${tr}。`, `Vagina traits: ${tr}.`)));
+    }
+    L.push(g.vdesc
+      ? t(B(`阴道外观（照此描写）：${g.vdesc}`, `Vagina appearance (as described): ${g.vdesc}`))
+      : t(B('阴道外观：未指定——保持解剖一致，场景没要求时不过度细化。',
+        'Vagina appearance: unstated — keep it anatomically consistent and non-graphic unless the scene calls for more.')));
   }
+  if (g.orifices.length) {
+    const orc = g.orifices.map(o => labelOf(OPTS.orifices, o)).join('; ');
+    L.push(t(B(`其他可用的孔位：${orc}。每个只在与该角色解剖相符的姿势下使用。`,
+      `Additional openings available: ${orc}. Use each only in positions anatomically consistent with this character.`)));
+  }
+  return L;
 }
 
-function calcSizeDiff() {
-  const sh = parseFloat(state.you.h), ch = parseFloat(state.them.h);
-  const sw = parseFloat(state.you.w), cw = parseFloat(state.them.w);
-  const el = $('size-diff');
-  if (!sh || !ch) { el.textContent = '填写两侧身高以查看体型差。'; return null; }
-  const hDiff = Math.abs(ch - sh);
-  let desc = `身高差：${hDiff} cm`;
-  if (sw && cw) desc += ` · 体重差：${Math.abs(cw - sw)} kg`;
-  if (hDiff >= 30) desc += ' — 量级差';
-  else if (hDiff >= 20) desc += ' — 体型差距显著';
-  else if (hDiff >= 10) desc += ' — 有明显差异';
-  else desc += ' — 体型接近';
-  el.textContent = desc;
-  return { hDiff, wDiff: (sw && cw) ? Math.abs(cw - sw) : null };
+function charLines(c) {
+  const L = [];
+  const nh = isNH(c);
+  L.push(t(B(`种族：${nh ? '非人形' : '人形'}`, `Species: ${nh ? 'Non-human' : 'Human'}`)));
+  if (nh && c.subspecies) {
+    const k = labelOf(OPTS.subspecies, c.subspecies);
+    L.push(t(B(`亚种：${k}`, `Kind: ${k}`)));
+  }
+  if (nh && c.material) {
+    const m = labelOf(OPTS.material, c.material);
+    L.push(t(B(`质地：${m}`, `Material: ${m}`)));
+  }
+  if (c.gender) {
+    const gi = labelOf(OPTS.gender, c.gender);
+    L.push(t(B(`性别认同：${gi}`, `Gender identity: ${gi}`)));
+  }
+  if (c.h || c.w || c.build) {
+    const hs = c.h ? c.h + 'cm' : t(B('身高未指定', 'height unspecified'));
+    const wt = c.w ? ' / ' + c.w + 'kg' : '';
+    const bd = c.build ? ' / ' + labelOf(OPTS.build, c.build, 'build') : '';
+    L.push(t(B(`体型：${hs}${wt}${bd}`, `Physique: ${hs}${wt}${bd}`)));
+  }
+  L.push(...genLines(c));
+  if (nh) {
+    if (c.tent) L.push(t(B(`肢体：${c.tent} 条触手${c.tlen ? '，每条 ' + c.tlen + 'cm' : ''}`,
+      `Limbs: ${c.tent} tentacles${c.tlen ? `, each ${c.tlen}cm` : ''}`)));
+    if (c.tail) {
+      const tl = labelOf(OPTS.tail, c.tail);
+      L.push(t(B(`尾巴：${tl}`, `Tail: ${tl}`)));
+    }
+    if (c.extra) L.push(t(B(`其他特征：${c.extra}`, `Other features: ${c.extra}`)));
+  }
+  return L;
 }
-<!--PART31-->
+<!--PART32-->
