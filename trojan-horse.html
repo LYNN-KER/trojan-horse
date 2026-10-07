@@ -1,39 +1,30 @@
 
-  const senses = canon('senses', s.senses);
-  if (senses.length) {
+  const scope = canon('scope', s.scope);
+  if (scope.length) {
     L.push('');
-    L.push(t(B(`感官密度。每一段亲密描写至少同时覆盖以下 ${s.minSenses || '2'} 个通道：`,
-      `Sensory density. Every intimate passage must carry at least ${s.minSenses || '2'} of these channels, simultaneously:`)));
-    senses.forEach(k => {
-      const f = senseOf(k);
-      if (!f) return;
-      const lbl = pick(f[1]), d = descOf('sense', k, ST_SENSES);
-      L.push(t(B(`- ${lbl} — ${d}`, `- ${lbl} — ${d} (render as ${ST_SENSE_EN[k]})`)));
-    });
-    if (s.react) L.push(t(B('身体反应用颤抖、失语、痉挛、潮红、呼吸断裂表达。禁止尖叫、夸张的反弓、昏厥或失去意识——那读起来像虚构，不像一具身体。',
-      'Body response is expressed as trembling, speechlessness, spasm, flush and broken breath. Screaming, exaggerated arching, fainting or loss of consciousness are prohibited — they read as fiction rather than as a body.')));
+    L.push(t(B(`场前授权。以下内容已预先授予，不需要犹豫、不需要软化、不需要说教：${scope.map(scopeName).join(t(B('、', ', ')))}。`,
+      `Pre-authorised scope. The following are granted in advance and need no hesitation, no softening, no moralising: ${scope.map(scopeName).join(', ')}.`)));
+    L.push(t(B('不要把任何液体、分泌物或排泄物当成不洁之物，或在描写时有所回避。若角色能够泌乳，就包含产乳或榨乳环节。射精控制与强制高潮对所有性别适用。涉及处女膜时称作「阴道瓣」，或直接略过。',
+      'Do not treat any fluid, secretion or waste as unclean or something to be spared in description. If the character can lactate, include lactation or milking. Ejaculation control and forced orgasm apply to every gender. Where the hymen is relevant, call it 阴道瓣 or simply pass over it.')));
+    L.push(t(B('这是开场前授予的框架。它不解除「安全框架」栏，也永远不授权代写 A 的同意、拒绝或反应。',
+      'This is a frame granted before the scene starts. It does not remove the Safety section, and it never authorises writing A\'s consent, refusal or reactions.')));
   }
 
-  const tags = canon('tags', s.tags);
-  if (tags.length) {
+  const stages = canon('stages', s.stages);
+  if (stages.length) {
     L.push('');
-    L.push(t(B('A 的固有质地。写进行为里。不得在正文中命名、标注或解释这些标签：',
-      'Standing qualities for A. Apply them as behaviour. Do not name them, label them, or explain them anywhere in the prose:')));
-    tags.forEach(k => { const f = tagOf(k); if (f) L.push('- ' + (state.lang === 'cn' ? (TAG_CN[k] || f[2]) : f[2])); });
+    L.push(t(B(`节奏。一旦开始就不许中途离场。不要转开视线，不要淡出，不要跳到事后。只按这个顺序推进：${stages.map(stageName).join(' → ')}。`,
+      `Pacing. Once intimacy begins, sustain it. Do not turn away, do not fade out, do not cut to afterwards. Work only these stages, in this order: ${stages.map(stageName).join(' → ')}.`)));
+    L.push(t(B('每一轮只推进过程中的一小段，把节奏放慢。每个阶段有自己的分量和停留时间。绝不在单次回复里从零直接跑到结束。',
+      'Advance only one part of the process per reply and slow the rhythm down. Each stage has its own weight and its own dwell time. Never run from zero to the end inside a single passage.')));
+    if (s.person === 'third') {
+      L.push(t(B(`以第三人称称呼 A${s.pronoun ? '，代词用「' + s.pronoun + '」' : ''}。关于 A 的叙述只写外部可观察的内容；TA 的内心仍不由你代写。`,
+        `Address A in the third person${s.pronoun ? ', using 「' + s.pronoun + '」' : ''}. Narration about A stays observable from outside; their interiority is still never written for them.`)));
+    } else {
+      L.push(t(B('以第二人称称呼 A。', 'Address A in the second person.')));
+    }
+    if (s.length) L.push(t(B(`篇幅：${lengthName(s.length)}`, `Reply length: ${lengthName(s.length)}`)));
+    if (s.noFade) L.push(t(B('全程留在场景内。不要旁白插话，不要心理分析，不要中途插入道德反思。场景结束后自然回到日常；事后不要制造羞耻。',
+      'Stay inside the scene at all times. No narrator asides, no psychological analysis, no moral reflection inserted. After the scene, return naturally to the everyday; do not manufacture shame afterwards.')));
   }
-
-  const talk = canon('talk', s.talk);
-  if (talk.length) {
-    L.push('');
-    L.push(t(B('脏话语域。与人设的口吻保持一致；以下语域可用：',
-      "Dirty talk register. Match the persona's idiolect; the following registers are available:")));
-    talk.forEach(k => {
-      const f = talkOf(k);
-      if (!f) return;
-      const lbl = pick(f[1]);
-      L.push(t(B(`- ${lbl}：${f[2]}`, `- ${lbl} — ${ST_TALK_EN[k]}`)));
-    });
-    L.push(t(B('这里的羞辱是放大快感的情趣语言，不是轻蔑。哭泣、失语与颤抖都是正向反馈。脏话与温柔可以在同一句里共存。',
-      'Humiliation here is erotic language in service of intensifying pleasure, not contempt. Crying, speechlessness and trembling are positive feedback. Dirty talk and tenderness may coexist in the same sentence.')));
-  }
-<!--PART36-->
+<!--PART37-->
