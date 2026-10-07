@@ -1,43 +1,26 @@
 
-document.addEventListener('keydown', e => {
-  try {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); return copyOutput($('copy-btn')); }
-    if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); return setAllOpen(true); }
-    const lad = e.target.closest && e.target.closest('.ladder-row');
-    if (lad && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
-      e.preventDefault();
-      const rows = Array.prototype.slice.call(e.target.closest('.obj-ladder').querySelectorAll('.ladder-row'));
-      const i = rows.indexOf(lad);
-      rows[(i + (e.key === 'ArrowDown' ? 1 : rows.length - 1)) % rows.length].focus();
-      return;
-    }
-    const pill = e.target.closest && e.target.closest('.pill');
-    if (pill) {
-      const items = Array.prototype.slice.call(pill.parentElement.querySelectorAll('.pill'));
-      const i = items.indexOf(pill);
-      let ni = null;
-      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') ni = (i + 1) % items.length;
-      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') ni = (i - 1 + items.length) % items.length;
-      else if (e.key === 'Home') ni = 0;
-      else if (e.key === 'End') ni = items.length - 1;
-      if (ni !== null) { e.preventDefault(); items.forEach((el, j) => { el.tabIndex = j === ni ? 0 : -1; }); items[ni].focus(); }
-      return;
-    }
-    const t = e.target.closest && e.target.closest('.chip, .tone-chip, .switch, .play-label, .ladder-row, .common-chip');
-    if (t && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); t.click(); }
-  } catch (err) { fatal(err); }
-});
+try {
+  buildStatic();
+  buildPlayList();
+  buildScenarios();
+  verifyBuild();
+  bindInteractive(document);
 
-let inputQueued = false;
-const onFormInput = e => {
-  if (!e.target.matches('input, select, textarea')) return;
-  try {
-    sync();
-    if (inputQueued) return;
-    inputQueued = true;
-    requestAnimationFrame(() => { inputQueued = false; paint(); });
-  } catch (err) { fatal(err); }
-};
-document.addEventListener('input', onFormInput);
-document.addEventListener('change', onFormInput);
-<!--PART47-->
+  const restored = load();
+  if (!restored) {
+    state.theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    PLAYS.forEach(gp => gp.items.forEach(it => { state.open[it.en] = true; }));
+  }
+  hydrate();
+  paint();
+  if (!gateRemembered()) openGate();
+  window.TH.ready = true;
+} catch (err) {
+  // 初始化断在半路时，静态 HTML 里的按钮（18R 门、夜间、输出、清空）必须还能点，
+  // 否则用户会以为整个文件坏了，连那道门都出不去。
+  try { bindInteractive(document); } catch (e) {}
+  fatal(err);
+}
+</script>
+</body>
+</html>
