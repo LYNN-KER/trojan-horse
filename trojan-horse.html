@@ -1,59 +1,49 @@
 
-const ST_TALK = [
-  ['order', '命令式 Order', '"张嘴。" "把腿分开。" "夹紧。"'],
-  ['press', '逼供式 Pressing', '"说，谁把你操成这样的。" "喜不喜欢，自己说。"'],
-  ['own', '所有权 Ownership', '"这个穴是谁的。" "里面灌满了谁的东西。"'],
-  ['shame', '羞辱式 Humiliating', '"骚货，又湿了。" "当内便器舒不舒服。"'],
-  ['threat', '威胁夸赞 Threat-praise', '"就这么紧，再夹就操烂你。" "里面好会吸，是不是欠干。"'],
-];
-const ST_TALK_EN = {
-  order: 'commands — short imperatives, no explanation: "Open your mouth." "Spread your legs." "Tighten."',
-  press: 'pressing for a confession — demand that A say it out loud, and make A supply the words, not you: "Say who did this to you." "Do you like it. Say it."',
-  own: 'ownership — mark A as B\'s property in the wording itself: "Whose hole is this." "Whose is filling it."',
-  shame: 'humiliating pet names, delivered as endearment: "Slut, you\'re wet again." "How is it, being a toilet for me."',
-  threat: 'threats fused with praise — the praise is the threat: "So tight. Squeeze again and I\'ll use you until you break." "You grip so well inside. Do you owe it a filling."',
+const ORDER = {
+  senses: ST_SENSES.map(x => x[0]),
+  tags: ST_TAGS.map(x => x[0]),
+  talk: ST_TALK.map(x => x[0]),
+  scope: ST_SCOPE.map(x => x[0]),
+  stages: ST_STAGES.map(x => x[0]),
+  lint: ST_LINT.map(x => x[0]),
+  titles: TITLE_ORDER,
+};
+const canon = (key, list) => {
+  const o = ORDER[key];
+  if (!o) return list;
+  return list.filter(k => o.includes(k)).sort((a, b) => o.indexOf(a) - o.indexOf(b));
 };
 
-const ST_SCOPE = [
-  ['train', '调教与支配'], ['orgasmctl', '高潮控制与强制高潮'], ['edge', 'edging 与寸止'],
-  ['incontinence', '失禁与体内射尿'], ['urethral', '尿道开发'], ['multi', '双穴与多穴同时开发'],
-  ['nipple', '乳首开发与产乳'], ['wastectl', '排泄控制'], ['objectify', '物化使用'],
-  ['publicnude', '公共场合隐秘裸露'], ['toys', '道具调教'], ['sensory', '感官剥夺与束缚'],
-  ['species', '异种'],
-];
-
-const ST_STAGES = [
-  ['foreplay', '前戏与脱衣'], ['insert', '插入'], ['stroke', '抽插'],
-  ['climax', '高潮'], ['after', '后戏'],
-];
-const ST_STAGE_EN = {
-  foreplay: 'undressing, foreplay', insert: 'penetration', stroke: 'thrusting',
-  climax: 'orgasm', after: 'aftercare',
-};
-
-const ST_LINT = [
-  ['banned', '是否出现禁词？'], ['sound', '是否全程有声音描写？'],
-  ['coarse', '词汇是否因温柔而变文雅？'], ['senses', '是否覆盖足够感官？'],
-  ['react', '是否出现夸张反应？'], ['tags', '标签是否被正文命名？'],
-];
-const ST_LINT_EN = {
-  banned: 'Did any banned euphemism slip in? Replace it with the locked vocabulary.',
-  sound: 'Is there sound in every passage? Add onomatopoeia inside the action, not at the end of a sentence.',
-  coarse: 'Has the vocabulary softened because the scene is gentle? Put the coarse terms back.',
-  senses: 'Does this passage carry at least the minimum number of sensory channels?',
-  react: 'Any screaming, arching, or fainting? Replace with real body response: trembling, speechlessness, spasm, flush, broken breath.',
-  tags: 'Have any of the standing qualities above been named or explained in the prose? Remove the name, keep the behaviour.',
-};
-
-const ST_PERSON = [['second', '第二人称 你'], ['third', '第三人称']];
-const ST_LENGTH = [
-  ['brief', '简短：两三句，最多一段'],
-  ['medium', '中等：一到两段'],
-  ['long', '充分：可写完一个阶段，但不跳阶段'],
-];
-const ST_LENGTH_EN = {
-  brief: 'Two or three sentences, at most one paragraph. Advance the act only a little.',
-  medium: 'One or two paragraphs. Stay inside the current stage.',
-  long: 'A full passage within the current stage. Never skip ahead to a later stage in the same reply.',
-};
-<!--PART16-->
+/* 注意：Aftercare 已从玩法列表移出，改为独立 section。 */
+const PLAYS = [
+  { cat: 'Sensation 感觉', items: [
+    { en: 'Biting', cn: '咬', d: '齿痕留在颈侧、肩、胸口。从浅印到见血之间，深度由你当场决定。' },
+    { en: 'Scratching', cn: '抓挠', d: '十指划过背部、臀部、大腿内侧，制造红痕与刺痒。' },
+    { en: 'Wax', cn: '滴蜡', d: '融蜡滴在皮肤上自然冷却，可反复叠加，也可在未干时抹开。' },
+    { en: 'Ice', cn: '冰块', d: '冰块、冰水或玻璃球。与热交替使用，制造收缩与表面敏感。' },
+    { en: 'Pinching', cn: '掐捏', d: '集中夹持乳尖、阴蒂、胯部皮肤褶皱，尖锐而非钝的刺激。' },
+    { en: 'Tickling', cn: '挠痒', d: '腋下、腰侧、脚心。难受但通常不留痕，可用来打断呼吸节奏。' },
+  ]},
+  { cat: 'Impact 打击', items: [
+    { en: 'Spanking', cn: '掌掴臀部', d: '手掌拍打臀部，声音与震动是重点，节奏由你掌控。' },
+    { en: 'Slapping', cn: '扇耳光', d: '面部或躯干击打。每次打完后要确认对方状态，而不是继续。' },
+    { en: 'Flogging', cn: '鞭打', d: '皮鞭抽打。落点需避开脊柱、肾区、颈侧与膝窝。' },
+    { en: 'Caning', cn: '藤条', d: '木质藤条，痕迹细而清晰，适合需要事后可被看见的场合。' },
+    { en: 'Hair pulling', cn: '扯头发', d: '拉扯头皮或发辫，从拉扯马尾到让对方跪下。' },
+  ]},
+  { cat: 'Restraint 束缚', items: [
+    { en: 'Handcuffs', cn: '手铐', d: '金属或硅胶手铐。需定期检查指尖颜色与手腕活动度。' },
+    { en: 'Rope', cn: '绳缚', d: '身体捆绑或单点缚法。受力点位置（腋下、肘弯、髋部）各不同。' },
+    { en: 'Blindfold', cn: '蒙眼', d: '剥夺视觉后，对方只能靠听觉和触觉判断你接下来做什么。' },
+    { en: 'Gag', cn: '口塞', d: '球形、杆式或布质。可抑制声音，也可反过来强制发声。' },
+    { en: 'Collar & leash', cn: '项圈与牵绳', d: '牵引控制。更多是姿态与所有权符号，日常化使用往往比场景内更有效。' },
+    { en: 'Spreader bar', cn: '分腿器', d: '撑开双腿并固定，既暴露也强制保持姿势。' },
+  ]},
+  { cat: 'Control 控制', items: [
+    { en: 'Edging', cn: '濒临控制', d: '反复逼近临界点却不允许释放，可以持续整场。' },
+    { en: 'Orgasm denial', cn: '高潮禁止', d: '整场都不允许对方达到高潮，所有接近都要被拉回。' },
+    { en: 'Orgasm control', cn: '高潮控制', d: '由你决定对方什么时候可以释放，判断依据是你，不是对方自述。' },
+    { en: 'Forced orgasm', cn: '强制高潮', d: '在对方不想或已经受不住的时候逼其达到高潮，属于强度越界区。' },
+    { en: 'Overstimulation', cn: '过度刺激', d: '高潮后或临界状态继续刺激，直到过敏感与钝痛。多为收尾手段。' },
+  ]},
+<!--PART17-->
